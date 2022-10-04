@@ -1,0 +1,48 @@
+Project 1 Tips:
+1) Assert is your friend. It can be very hard to track exactly what the state of everything is when switching between different contexts. Use asserts to guarantee that your uthread library is maintaining the invariants you expect. For example, whenever entering into or returning from a public uthread library function, interrupts should always be enabled since you are coming from or going back to user code. Use an assert to make sure that is the case.
+
+2) Enabling and disabling interrupts requires some knowledge about singal handling. To help with this, I have provided an example solution for the enableInterrupts() and disableInterrupts() functions below. This solution requires that interrupts are enabled when you call disableInterrupts() and disabled when you call enableInterrupts(). You do not have to follow this solution but it should be helpful if you are stuck.
+
+static struct sigaction _sigAction;
+
+static bool interrupts_enabled = true;
+static void disableInterrupts()
+{
+        assert(interrupts_enabled);
+	sigprocmask(SIG_BLOCK,&_sigAction.sa_mask, NULL);
+        interrupts_enabled = false;
+}
+
+static void enableInterrupts()
+{
+        assert(!interrupts_enabled);
+        interrupts_enabled = true;
+	sigprocmask(SIG_UNBLOCK,&_sigAction.sa_mask, NULL);
+}
+
+int uthread_init(int quantum_usecs)
+{
+	// ...
+
+	// Initialize the timer mask
+	if (sigemptyset(&_sigAction.sa_mask) < -1)
+	{
+		cout << "ERROR: Failed to empty to set" << endl;
+		exit(1);
+	}
+	if (sigaddset(&_sigAction.sa_mask, SIGVTALRM))
+	{
+		cout << "ERROR: Failed to add to set" << endl;
+		exit(1);
+	}
+
+	// ...
+}
+
+3) Our uthread implementation of switchThreads() differs from what we have seen in lecture and in the book since we are switching threads using system calls (getcontext, setcontext, makecontext) from user-space instead of modifying the stack, stack pointer, and program counter from kernel-space. Your implementation of switchThreads() should be very similar to the provided switchThreads() function in the demo/ucontext-demo.cpp code. The main difference is that in our uthread library we will be switching from the running thread to the next thread on the ready queue instead of just switching between two contexts in an array.
+
+4) Interrupts should be disabled when switching between threads. But how can we guarantee that threads are disabled and re-enabled when switching threads since we are going to be switching to a different context and potentially a completely different call to switchThreads()? The yield slide from the week3_threads_and_concurrency slides and the textbook on pages 160-161 have good discussions about this. The important thing to note is that you should always call switchThreads() in the same manner. i.e. interrupts should be disabled by the caller before calling switchThreads() and re-enabled by the (potentially different) caller whenever returning from switchThreads(). This ensures consistency regardless of where the thread returns to.
+
+5) In the demo code a ucontext_t array is used to store the contexts of all of the threads. In our uthread library, each ucontext_t is encapsulated (along with everything else about a thread) in a TCB object so you should instead use a data structure maintaining all TCB*s. In many cases we want to be able to access TCBs by their TID so your data structure should provide a mapping from TID -> TCB*. An array of MAX_THREAD_NUM TCB* entries or a std::map<int, TCB*> would work well for this.
+
+6) The main thread differs from created threads in that it already has a stack and context. Make sure you are not allocating/leaking/invalid_freeing a stack for the main thread. You also shouldn't makecontext() for the main thread since it is already running code.
