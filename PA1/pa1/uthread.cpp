@@ -115,11 +115,13 @@ int uthread_init(int quantum_usecs)
         // Initialize any data structures
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
+        return 0;
 }
 
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
         // Create a new thread and add it to the ready queue
+        return 0;
 }
 
 int uthread_join(int tid, void **retval)
@@ -127,11 +129,13 @@ int uthread_join(int tid, void **retval)
         // If the thread specified by tid is already terminated, just return
         // If the thread specified by tid is still running, block until it terminates
         // Set *retval to be the result of thread if retval != nullptr
+        return 0;
 }
 
 int uthread_yield(void)
 {
         // TODO
+        return 0;
 }
 
 void uthread_exit(void *retval)
@@ -139,30 +143,36 @@ void uthread_exit(void *retval)
         // If this is the main thread, exit the program
         // Move any threads joined on this thread back to the ready queue
         // Move this thread to the finished queue
+        return;
 }
 
 int uthread_suspend(int tid)
 {
         // Move the thread specified by tid from whatever state it is
         // in to the block queue
+        return 0;
 }
 
 int uthread_resume(int tid)
 {
         // Move the thread specified by tid back to the ready queue
+        return 0;
 }
 
 int uthread_self()
 {
         // TODO
+        return 0;
 }
 
 int uthread_get_total_quantums()
 {
         // TODO
+        return 0;
 }
 
 int uthread_get_quantums(int tid)
 {
         // TODO
+        return 0;
 }
