@@ -105,7 +105,9 @@ static void switchThreads()
 // Starting point for thread. Calls top-level thread function
 void stub(void *(*start_routine)(void *), void *arg)
 {
-        // TODO
+        
+        uthread_exit(start_routine(arg));
+
 }
 
 int uthread_init(int quantum_usecs)
