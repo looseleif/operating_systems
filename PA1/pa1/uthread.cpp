@@ -30,13 +30,21 @@ typedef struct join_queue_entry {
 // Queues
 static deque<TCB*> ready_queue;
 
+static int global_thread_count = 0;
+
 
 // Interrupt Management --------------------------------------------------------
 
 // Start a countdown timer to fire an interrupt
 static void startInterruptTimer()
 {
-        // TODO
+        struct itimerval value;
+        value.it_value.tv_sec = 1;
+        value.it_value.tv_usec = quantum_usecs;
+        value.it_interval.tv_sec = 1;
+        value.it_interval.tv_usec = quantum_usecs;
+
+        setitimer(ITIMER_VIRTUAL, &value, NULL);
 }
 
 // Block signals from firing timer interrupt
@@ -115,13 +123,22 @@ int uthread_init(int quantum_usecs)
         // Initialize any data structures
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
-        return 0;
+
+        startInterruptTimer();
+
+        static ucontext_t cont;
+
+        return getcontext(&cont);
 }
 
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
         // Create a new thread and add it to the ready queue
-        return 0;
+        TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
+
+        addToReadyQueue(thread_instance);
+
+        return global_thread_count++;
 }
 
 int uthread_join(int tid, void **retval)
