@@ -19,7 +19,7 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
 TCB::~TCB()
 {
 
-    delete &(this->_context);
+    //delete &(this->_context);
 
 }
 

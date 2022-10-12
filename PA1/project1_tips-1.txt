@@ -39,10 +39,27 @@ int uthread_init(int quantum_usecs)
 	// ...
 }
 
-3) Our uthread implementation of switchThreads() differs from what we have seen in lecture and in the book since we are switching threads using system calls (getcontext, setcontext, makecontext) from user-space instead of modifying the stack, stack pointer, and program counter from kernel-space. Your implementation of switchThreads() should be very similar to the provided switchThreads() function in the demo/ucontext-demo.cpp code. The main difference is that in our uthread library we will be switching from the running thread to the next thread on the ready queue instead of just switching between two contexts in an array.
+3) Our uthread implementation of switchThreads() differs from what we have seen in lecture and in the book since 
+we are switching threads using system calls (getcontext, setcontext, makecontext) from user-space instead of modifying 
+the stack, stack pointer, and program counter from kernel-space. Your implementation of switchThreads() should be very 
+similar to the provided switchThreads() function in the demo/ucontext-demo.cpp code. The main difference is that in our 
+uthread library we will be switching from the running thread to the next thread on the ready queue instead of just 
+switching between two contexts in an array.
 
-4) Interrupts should be disabled when switching between threads. But how can we guarantee that threads are disabled and re-enabled when switching threads since we are going to be switching to a different context and potentially a completely different call to switchThreads()? The yield slide from the week3_threads_and_concurrency slides and the textbook on pages 160-161 have good discussions about this. The important thing to note is that you should always call switchThreads() in the same manner. i.e. interrupts should be disabled by the caller before calling switchThreads() and re-enabled by the (potentially different) caller whenever returning from switchThreads(). This ensures consistency regardless of where the thread returns to.
+4) Interrupts should be disabled when switching between threads. But how can we guarantee that threads are 
+disabled and re-enabled when switching threads since we are going to be switching to a different context and 
+potentially a completely different call to switchThreads()? The yield slide from the week3_threads_and_concurrency 
+slides and the textbook on pages 160-161 have good discussions about this. The important thing to note is that you 
+should always call switchThreads() in the same manner. i.e. interrupts should be disabled by the caller before calling 
+switchThreads() and re-enabled by the (potentially different) caller whenever returning from switchThreads(). 
+This ensures consistency regardless of where the thread returns to.
 
-5) In the demo code a ucontext_t array is used to store the contexts of all of the threads. In our uthread library, each ucontext_t is encapsulated (along with everything else about a thread) in a TCB object so you should instead use a data structure maintaining all TCB*s. In many cases we want to be able to access TCBs by their TID so your data structure should provide a mapping from TID -> TCB*. An array of MAX_THREAD_NUM TCB* entries or a std::map<int, TCB*> would work well for this.
+5) In the demo code a ucontext_t array is used to store the contexts of all of the threads. In our uthread library, 
+each ucontext_t is encapsulated (along with everything else about a thread) in a TCB object so you should instead 
+use a data structure maintaining all TCB*s. In many cases we want to be able to access TCBs by their TID so your 
+data structure should provide a mapping from TID -> TCB*. 
+An array of MAX_THREAD_NUM TCB* entries or a std::map<int, TCB*> would work well for this.
 
-6) The main thread differs from created threads in that it already has a stack and context. Make sure you are not allocating/leaking/invalid_freeing a stack for the main thread. You also shouldn't makecontext() for the main thread since it is already running code.
+6) The main thread differs from created threads in that it already has a stack and context. 
+Make sure you are not allocating/leaking/invalid_freeing a stack for the main thread. 
+You also shouldn't makecontext() for the main thread since it is already running code.

@@ -4,6 +4,9 @@
 using namespace std;
 
 void *worker(void *arg) {
+    
+    cout << "var john" << endl;
+
     int my_tid = uthread_self();
     int points_per_thread = *(int*)arg;
 

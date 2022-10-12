@@ -2,6 +2,7 @@
 #include "TCB.h"
 #include <cassert>
 #include <deque>
+#include <map>
 
 using namespace std;
 
@@ -32,19 +33,21 @@ static deque<TCB*> ready_queue;
 
 static int global_thread_count = 0;
 
+static struct itimerval value;
+
+//static map<int,TCB*> thread_map;
+
+static TCB* thread_translation[MAX_THREAD_NUM] ;
+
 
 // Interrupt Management --------------------------------------------------------
 
 // Start a countdown timer to fire an interrupt
 static void startInterruptTimer()
 {
-        struct itimerval value;
-        value.it_value.tv_sec = 1;
-        value.it_value.tv_usec = quantum_usecs;
-        value.it_interval.tv_sec = 1;
-        value.it_interval.tv_usec = quantum_usecs;
 
         setitimer(ITIMER_VIRTUAL, &value, NULL);
+
 }
 
 // Block signals from firing timer interrupt
@@ -57,6 +60,13 @@ static void disableInterrupts()
 static void enableInterrupts()
 {
         // TODO
+}
+
+void signalHandler(int signal_num){
+
+        printf("ajhsdkj");
+        return;
+
 }
 
 
@@ -101,7 +111,27 @@ int removeFromReadyQueue(int tid)
 // Switch to the next ready thread
 static void switchThreads()
 {
-        // TODO
+    
+//     // currentThread is a global variable shared by both threads
+//     static int currentThread = 0;
+
+//     // flag is a local stack variable to each thread
+//     volatile int flag = 0;
+
+//     // getcontext() will "return twice" - Need to differentiate between the two
+//     int ret_val = getcontext(&cont[currentThread]);
+//     cout << "SWITCH: currentThread = " << currentThread << endl;
+
+//     // If flag == 1 then it was already set below so this is the second return
+//     // from getcontext (run this thread)
+//     if (flag == 1) {
+//         return;
+//     }
+
+//     // This is the first return from getcontext (switching threads)
+//     flag = 1;
+//     currentThread = 1 - currentThread;
+//     setcontext(&cont[currentThread]);
 }
 
 
@@ -124,17 +154,29 @@ int uthread_init(int quantum_usecs)
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
 
+        value.it_value.tv_sec = 0;
+        value.it_value.tv_usec = quantum_usecs;
+        value.it_interval.tv_sec = 0;
+        value.it_interval.tv_usec = quantum_usecs;
+
+        signal(SIGVTALRM, signalHandler);
+
         startInterruptTimer();
 
         static ucontext_t cont;
 
         return getcontext(&cont);
+
 }
 
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
         // Create a new thread and add it to the ready queue
+
         TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
+
+        cout << thread_instance->getId() << endl;
+        //assert(global_thread_count==0);
 
         addToReadyQueue(thread_instance);
 
