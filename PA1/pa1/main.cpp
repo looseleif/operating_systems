@@ -4,8 +4,6 @@
 using namespace std;
 
 void *worker(void *arg) {
-    
-    cout << "var john" << endl;
 
     int my_tid = uthread_self();
     int points_per_thread = *(int*)arg;
@@ -55,6 +53,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < thread_count; i++) {
         int tid = uthread_create(worker, &points_per_thread);
         threads[i] = tid;
+        cout << threads[i] << endl;
     }
 
     // Wait for all threads to complete
@@ -64,10 +63,12 @@ int main(int argc, char *argv[]) {
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
         g_cnt += *local_cnt;
-
+    
         // Deallocate thread result
         delete local_cnt;
     }
+
+
 
     delete[] threads;
 

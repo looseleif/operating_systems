@@ -1,6 +1,9 @@
 Project 1 Tips:
+
+// DONE
 1) Assert is your friend. It can be very hard to track exactly what the state of everything is when switching between different contexts. Use asserts to guarantee that your uthread library is maintaining the invariants you expect. For example, whenever entering into or returning from a public uthread library function, interrupts should always be enabled since you are coming from or going back to user code. Use an assert to make sure that is the case.
 
+// DONE
 2) Enabling and disabling interrupts requires some knowledge about singal handling. To help with this, I have provided an example solution for the enableInterrupts() and disableInterrupts() functions below. This solution requires that interrupts are enabled when you call disableInterrupts() and disabled when you call enableInterrupts(). You do not have to follow this solution but it should be helpful if you are stuck.
 
 static struct sigaction _sigAction;
@@ -54,6 +57,7 @@ should always call switchThreads() in the same manner. i.e. interrupts should be
 switchThreads() and re-enabled by the (potentially different) caller whenever returning from switchThreads(). 
 This ensures consistency regardless of where the thread returns to.
 
+// DONE
 5) In the demo code a ucontext_t array is used to store the contexts of all of the threads. In our uthread library, 
 each ucontext_t is encapsulated (along with everything else about a thread) in a TCB object so you should instead 
 use a data structure maintaining all TCB*s. In many cases we want to be able to access TCBs by their TID so your 

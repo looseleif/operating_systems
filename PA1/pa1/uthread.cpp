@@ -33,11 +33,13 @@ static deque<TCB*> ready_queue;
 
 static int global_thread_count = 0;
 
+static TCB* current_thread;
+
 static struct itimerval value;
 
 //static map<int,TCB*> thread_map;
 
-static TCB* thread_translation[MAX_THREAD_NUM] ;
+static TCB* thread_translation[MAX_THREAD_NUM];
 
 
 // Interrupt Management --------------------------------------------------------
@@ -51,21 +53,29 @@ static void startInterruptTimer()
 }
 
 // Block signals from firing timer interrupt
+static struct sigaction _sigAction;
+
+static bool interrupts_enabled = true;
+
 static void disableInterrupts()
 {
-        // TODO
+        assert(interrupts_enabled);
+	sigprocmask(SIG_BLOCK,&_sigAction.sa_mask, NULL);
+        interrupts_enabled = false;
 }
 
 // Unblock signals to re-enable timer interrupt
 static void enableInterrupts()
 {
-        // TODO
+        assert(!interrupts_enabled);
+        interrupts_enabled = true;
+	sigprocmask(SIG_UNBLOCK,&_sigAction.sa_mask, NULL);
 }
 
-void signalHandler(int signal_num){
+void timerTrigger(int signal_num){
 
-        printf("ajhsdkj");
-        return;
+        disableInterrupts();
+        uthread_yield();
 
 }
 
@@ -111,27 +121,27 @@ int removeFromReadyQueue(int tid)
 // Switch to the next ready thread
 static void switchThreads()
 {
+
+    // flag is a local stack variable to each thread
+    volatile int flag = 0;
+
+    // getcontext() will "return twice" - Need to differentiate between the two
+    int ret_val = current_thread->saveContext();
+    //cout << "SWITCH: currentThread = " << currentThread << endl;
+
+    // If flag == 1 then it was already set below so this is the second return
+    // from getcontext (run this thread)
+    if (flag == 1) {
+        enableInterrupts();
+        return;
+    }
+
+    // This is the first return from getcontext (switching threads)
+    flag = 1;
+    addToReadyQueue(current_thread);
+    current_thread = popFromReadyQueue();
+    current_thread->loadContext();
     
-//     // currentThread is a global variable shared by both threads
-//     static int currentThread = 0;
-
-//     // flag is a local stack variable to each thread
-//     volatile int flag = 0;
-
-//     // getcontext() will "return twice" - Need to differentiate between the two
-//     int ret_val = getcontext(&cont[currentThread]);
-//     cout << "SWITCH: currentThread = " << currentThread << endl;
-
-//     // If flag == 1 then it was already set below so this is the second return
-//     // from getcontext (run this thread)
-//     if (flag == 1) {
-//         return;
-//     }
-
-//     // This is the first return from getcontext (switching threads)
-//     flag = 1;
-//     currentThread = 1 - currentThread;
-//     setcontext(&cont[currentThread]);
 }
 
 
@@ -143,7 +153,7 @@ static void switchThreads()
 // Starting point for thread. Calls top-level thread function
 void stub(void *(*start_routine)(void *), void *arg)
 {
-        
+        // enable intrrpt
         uthread_exit(start_routine(arg));
 
 }
@@ -154,18 +164,34 @@ int uthread_init(int quantum_usecs)
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
 
+	// Initialize the timer mask
+	if (sigemptyset(&_sigAction.sa_mask) < -1)
+	{
+		cout << "ERROR: Failed to empty to set" << endl;
+		exit(1);
+	}
+	if (sigaddset(&_sigAction.sa_mask, SIGVTALRM))
+	{
+		cout << "ERROR: Failed to add to set" << endl;
+		exit(1);
+	}
+
         value.it_value.tv_sec = 0;
         value.it_value.tv_usec = quantum_usecs;
         value.it_interval.tv_sec = 0;
         value.it_interval.tv_usec = quantum_usecs;
 
-        signal(SIGVTALRM, signalHandler);
+        signal(SIGVTALRM, timerTrigger);
 
-        startInterruptTimer();
+        TCB* main_thread = new TCB(0, READY);
 
-        static ucontext_t cont;
+        thread_translation[0] = main_thread;
 
-        return getcontext(&cont);
+        addToReadyQueue(main_thread);
+
+        global_thread_count+=1;
+
+        return main_thread->getId();
 
 }
 
@@ -175,12 +201,18 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
         TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
 
-        cout << thread_instance->getId() << endl;
-        //assert(global_thread_count==0);
+        //cout << thread_instance->getId() << endl;
 
         addToReadyQueue(thread_instance);
 
-        return global_thread_count++;
+        cout << global_thread_count << endl;
+
+        int returnVal = global_thread_count;
+        global_thread_count++;
+
+        thread_instance->loadContext();
+
+        return returnVal;
 }
 
 int uthread_join(int tid, void **retval)
@@ -193,7 +225,7 @@ int uthread_join(int tid, void **retval)
 
 int uthread_yield(void)
 {
-        // TODO
+        switchThreads();
         return 0;
 }
 

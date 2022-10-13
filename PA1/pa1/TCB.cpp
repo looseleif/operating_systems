@@ -16,6 +16,25 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
 
 }
 
+TCB::TCB(int tid, State state)
+{
+    
+    
+
+    if(getcontext(&(this->_context))==0){
+
+        this->_tid = tid;
+
+    } else {
+
+        this->_tid = -1;
+
+    }
+
+    this->_state = state;
+
+}
+
 TCB::~TCB()
 {
 
@@ -66,5 +85,4 @@ int TCB::saveContext()
 void TCB::loadContext()
 {
     setcontext(&(this->_context));
-    return;
 }
