@@ -141,7 +141,7 @@ static void switchThreads()
     addToReadyQueue(current_thread);
     current_thread = popFromReadyQueue();
     current_thread->loadContext();
-    
+
 }
 
 
@@ -252,8 +252,7 @@ int uthread_resume(int tid)
 
 int uthread_self()
 {
-        // TODO
-        return 0;
+        return current_thread->getId;
 }
 
 int uthread_get_total_quantums()
