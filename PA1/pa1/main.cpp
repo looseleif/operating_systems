@@ -62,8 +62,12 @@ int main(int argc, char *argv[]) {
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
         cout << "hi" << endl;
+        
         g_cnt += *local_cnt;
     
+        // REMOVE USING FOR TEST
+        while(true);
+
         // Deallocate thread result
         delete local_cnt;
     }

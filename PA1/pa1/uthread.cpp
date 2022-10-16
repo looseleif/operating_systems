@@ -35,7 +35,7 @@ static int global_thread_count = 0;
 
 static TCB* current_thread;
 
-static struct itimerval value;
+static struct itimerval tv;
 
 //static map<int,TCB*> thread_map;
 
@@ -48,7 +48,7 @@ static TCB* thread_translation[MAX_THREAD_NUM];
 static void startInterruptTimer()
 {
 
-        setitimer(ITIMER_VIRTUAL, &value, NULL);
+        setitimer(ITIMER_VIRTUAL, &tv, NULL);
 
 }
 
@@ -72,10 +72,11 @@ static void enableInterrupts()
 	sigprocmask(SIG_UNBLOCK,&_sigAction.sa_mask, NULL);
 }
 
-void timerTrigger(int signal_num){
+void time(int signal_num){
 
-        disableInterrupts();
-        uthread_yield();
+        //disableInterrupts();
+        cout << "interrupt has run" << endl;
+        //uthread_yield();
 
 }
 
@@ -164,24 +165,33 @@ int uthread_init(int quantum_usecs)
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
 
-	// Initialize the timer mask
-	if (sigemptyset(&_sigAction.sa_mask) < -1)
-	{
-		cout << "ERROR: Failed to empty to set" << endl;
-		exit(1);
-	}
-	if (sigaddset(&_sigAction.sa_mask, SIGVTALRM))
-	{
-		cout << "ERROR: Failed to add to set" << endl;
-		exit(1);
-	}
+	// // Initialize the timer mask
+	// if (sigemptyset(&_sigAction.sa_mask) < -1)
+	// {
+	// 	cout << "ERROR: Failed to empty to set" << endl;
+	// 	exit(1);
+	// }
+	// if (sigaddset(&_sigAction.sa_mask, SIGVTALRM))
+	// {
+	// 	cout << "ERROR: Failed to add to set" << endl;
+	// 	exit(1);
+	// }
 
-        value.it_value.tv_sec = 0;
-        value.it_value.tv_usec = quantum_usecs;
-        value.it_interval.tv_sec = 0;
-        value.it_interval.tv_usec = quantum_usecs;
+        // value.it_value.tv_sec = 0;
+        // value.it_value.tv_usec = quantum_usecs;
+        // value.it_interval.tv_sec = 0;
+        // value.it_interval.tv_usec = quantum_usecs;
 
-        signal(SIGVTALRM, timerTrigger);
+        // signal(SIGVTALRM, timerTrigger);
+
+        signal(SIGVTALRM, time);
+
+        tv.it_value.tv_sec = 0;
+        tv.it_value.tv_usec = quantum_usecs;
+        tv.it_interval.tv_sec = 0;
+        tv.it_interval.tv_usec = quantum_usecs;
+ 
+        startInterruptTimer();
 
         TCB* main_thread = new TCB(0, READY);
 
