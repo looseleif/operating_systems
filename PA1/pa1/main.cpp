@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < thread_count; i++) {
         int tid = uthread_create(worker, &points_per_thread);
         threads[i] = tid;
-        cout << threads[i] << endl;
     }
 
     // Wait for all threads to complete
@@ -62,6 +61,7 @@ int main(int argc, char *argv[]) {
         // Add thread result to global total
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
+        cout << "hi" << endl;
         g_cnt += *local_cnt;
     
         // Deallocate thread result

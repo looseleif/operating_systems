@@ -10,6 +10,9 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
     this->_context.uc_stack.ss_size = STACK_SIZE;
     this->_context.uc_stack.ss_flags = 0;
 
+    // check piazza
+    sigaddset(&(this->_context.uc_sigmask), SIGVTALRM);
+
     this->_state = state;
 
     makecontext(&(this->_context), (void(*)())stub, 2, start_routine, arg);
@@ -19,8 +22,6 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
 TCB::TCB(int tid, State state)
 {
     
-    
-
     if(getcontext(&(this->_context))==0){
 
         this->_tid = tid;

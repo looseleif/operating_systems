@@ -201,16 +201,12 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
         TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
 
-        //cout << thread_instance->getId() << endl;
-
         addToReadyQueue(thread_instance);
 
-        cout << global_thread_count << endl;
+        thread_translation[global_thread_count] = thread_instance;
 
         int returnVal = global_thread_count;
         global_thread_count++;
-
-        thread_instance->loadContext();
 
         return returnVal;
 }
@@ -252,7 +248,7 @@ int uthread_resume(int tid)
 
 int uthread_self()
 {
-        return current_thread->getId;
+        return current_thread->getId();
 }
 
 int uthread_get_total_quantums()
