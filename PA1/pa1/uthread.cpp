@@ -129,10 +129,11 @@ static void switchThreads()
 
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
+    cout << current_thread->getId() << " threadajsdhjasd" << endl;
     //cout << "SWITCH: currentThread = " << currentThread << endl;
     // If flag == 1 then it was already set below so this is the second return
     // from getcontext (run this thread)
-    cout << flag << " flag" << endl;
+    cout << flag << " flag DOWNSOME" << endl;
     if (flag == 1) {
         cout << "1 flag" << endl;
         enableInterrupts();
