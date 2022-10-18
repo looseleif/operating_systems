@@ -77,7 +77,6 @@ static void enableInterrupts()
 
 void time(int signal_num){
 
-        //disableInterrupts();
         cout << "interrupt has run" << endl;
         uthread_yield();
 
@@ -170,28 +169,6 @@ void stub(void *(*start_routine)(void *), void *arg)
 
 int uthread_init(int quantum_usecs)
 {
-        // Initialize any data structures
-        // Setup timer interrupt and handler
-        // Create a thread for the caller (main) thread
-
-	// // Initialize the timer mask
-	// if (sigemptyset(&_sigAction.sa_mask) < -1)
-	// {
-	// 	cout << "ERROR: Failed to empty to set" << endl;
-	// 	exit(1);
-	// }
-	// if (sigaddset(&_sigAction.sa_mask, SIGVTALRM))
-	// {
-	// 	cout << "ERROR: Failed to add to set" << endl;
-	// 	exit(1);
-	// }
-
-        // value.it_value.tv_sec = 0;
-        // value.it_value.tv_usec = quantum_usecs;
-        // value.it_interval.tv_sec = 0;
-        // value.it_interval.tv_usec = quantum_usecs;
-
-        // signal(SIGVTALRM, timerTrigger);
 
         signal(SIGVTALRM, time);
 
