@@ -40,8 +40,6 @@ static TCB* current_thread;
 
 static struct itimerval tv;
 
-//static map<int,TCB*> thread_map;
-
 static TCB* thread_translation[MAX_THREAD_NUM];
 
 
@@ -62,14 +60,16 @@ static bool interrupts_enabled = true;
 
 static void disableInterrupts()
 {
-        assert(interrupts_enabled);
-	sigprocmask(SIG_BLOCK,&_sigAction.sa_mask, NULL);
+        cout << "disable int" << endl;
+        //assert(interrupts_enabled);
+	//sigprocmask(SIG_BLOCK,&_sigAction.sa_mask, NULL);
         interrupts_enabled = false;
 }
 
 // Unblock signals to re-enable timer interrupt
 static void enableInterrupts()
 {
+        cout << "enabling int" << endl;
         assert(!interrupts_enabled);
         interrupts_enabled = true;
 	sigprocmask(SIG_UNBLOCK,&_sigAction.sa_mask, NULL);
@@ -79,6 +79,7 @@ void time(int signal_num){
 
         cout << "interrupt has run" << endl;
         uthread_yield();
+        return;
 
 }
 
@@ -124,14 +125,13 @@ int removeFromReadyQueue(int tid)
 // Switch to the next ready thread
 static void switchThreads()
 {
-    disableInterrupts();
     // flag is a local stack variable to each thread
     volatile int flag = 0;
 
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
     //cout << "SWITCH: currentThread = " << currentThread << endl;
-
+    cout << flag << endl;
     // If flag == 1 then it was already set below so this is the second return
     // from getcontext (run this thread)
     if (flag == 1) {
@@ -162,7 +162,8 @@ static void switchThreads()
 void stub(void *(*start_routine)(void *), void *arg)
 {
         // enable intrrpt
-        cout << "thread" << current_thread->getId() << "executing worker" << endl;
+        cout << "thread " << current_thread->getId() << " executing worker" << endl;
+        enableInterrupts();
         uthread_exit(start_routine(arg));
 
 }
@@ -215,23 +216,20 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
 int uthread_join(int tid, void **retval)
 {
-    cout << "JOIN:"<<tid;
         // If the thread specified by tid is already terminated, just return
         // If the thread specified by tid is still running, block until it terminates
         // Set *retval to be the result of thread if retval != nullptr
         if(thread_translation[tid]->getState() != BLOCK)
         {
-            cout << "wtf cuh!";
                 //put this thread on join to wait for the thread to finish
-                cout << "wtf cuh!";
                 join_queue_entry_t* john = new join_queue_entry_t();
-                cout << "wtf cuh!";
                 john->waiting_for_tid = tid;
                 john->tcb = current_thread;
                 john->tcb->setState(BLOCK);
 
                 join_queue.push_back(john);
                 uthread_yield();
+                cout << "post first thread exit";
         }
         //when the thread is awoken it will return here
         //thread of interest should be terminated/blocked
@@ -260,6 +258,7 @@ int uthread_join(int tid, void **retval)
 
 int uthread_yield(void)
 {
+        disableInterrupts();
         switchThreads();
         return 0;
 }
@@ -270,6 +269,7 @@ void uthread_exit(void *retval)
         // Move any threads joined on this thread back to the ready queue
         // Move this thread to the finished queue
         int exiting_TID = uthread_self();
+        
         //if main exit
         if(exiting_TID == 0)
         {
@@ -280,6 +280,7 @@ void uthread_exit(void *retval)
         {
                 //move this thread to finished deque
                 finished_queue_entry_t* fini = new finished_queue_entry_t();
+                cout << (*(unsigned long*)retval) << " retval" << endl;
                 fini->result = retval;
                 fini->tcb = current_thread;
                 fini->tcb->setState(BLOCK);
@@ -287,20 +288,33 @@ void uthread_exit(void *retval)
                 finish_queue.push_back(fini);
                 //put main back on ready (using join queue)
                 //iterate through join queue and find a joined thread
+
+                // for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter){
+
+                //         cout << (*iter)->tcb->getId() << "FOR LOOP CHECK" << endl;
+
+                // }
+
                 for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter)
                 {
                         if (exiting_TID == (*iter)->waiting_for_tid)
                         {
+                                cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
+                                cout << exiting_TID << " exiting TID" << endl;
                                 //ready the joined thread
                                 ready_queue.push_back((*iter)->tcb);
+                                //cout << "pushed to readyQ iterTcb:" << (*iter)->tcb->getId() << endl;
                                 (*iter)->tcb->setState(READY);
-
                                 //delete from join queue
                                 join_queue.erase(iter);
+                                uthread_yield();
+                                return;
                         }
                 }
         }
-        return;
+
+        cout <<"test"<<endl;
+        //exit(0);
 }
 
 int uthread_suspend(int tid)

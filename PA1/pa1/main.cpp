@@ -7,7 +7,7 @@ void *worker(void *arg) {
 
     int my_tid = uthread_self();
     int points_per_thread = *(int*)arg;
-
+    cout << "in worker" << endl;
     unsigned long local_cnt = 0;
     unsigned int rand_state = rand();
     for (int i = 0; i < points_per_thread; i++) {
@@ -16,7 +16,7 @@ void *worker(void *arg) {
         if (x * x + y * y < 1)
             local_cnt++;
     }
-
+    cout << local_cnt << " worker local cnt" << endl;
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
