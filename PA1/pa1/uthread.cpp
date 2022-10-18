@@ -122,19 +122,23 @@ int removeFromReadyQueue(int tid)
 // Switch to the next ready thread
 static void switchThreads()
 {
+    cout << "switching from thread " << current_thread->getId() << endl;
+    
     // flag is a local stack variable to each thread
     volatile int flag = 0;
 
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
     //cout << "SWITCH: currentThread = " << currentThread << endl;
-    cout << flag << " flag" << endl;
     // If flag == 1 then it was already set below so this is the second return
     // from getcontext (run this thread)
+    cout << flag << " flag" << endl;
     if (flag == 1) {
+        cout << "1 flag" << endl;
         enableInterrupts();
         return;
     }
+
 
     // This is the first return from getcontext (switching threads)
     flag = 1;
@@ -145,6 +149,7 @@ static void switchThreads()
     }
     current_thread = popFromReadyQueue();
     current_thread->setState(RUNNING);
+    cout << "switching to thread " << current_thread->getId() << endl;
     current_thread->loadContext();
 
 }
@@ -309,6 +314,7 @@ void uthread_exit(void *retval)
                                 (*iter)->tcb->setState(READY);
                                 //delete from join queue
                                 join_queue.erase(iter);
+                                cout << exiting_TID << " yielding... "<< endl;
                                 uthread_yield();
                                 return;
                         }
