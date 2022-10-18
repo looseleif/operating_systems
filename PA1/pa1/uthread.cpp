@@ -38,31 +38,32 @@ static int global_thread_count = 0;
 
 static TCB* current_thread;
 
-static struct itimerval tv;
-
 static TCB* thread_translation[MAX_THREAD_NUM];
-
 
 // Interrupt Management --------------------------------------------------------
 
-// Start a countdown timer to fire an interrupt
-static void startInterruptTimer()
-{
-
-        setitimer(ITIMER_VIRTUAL, &tv, NULL);
-
-}
-
 // Block signals from firing timer interrupt
-static struct sigaction _sigAction;
+static struct sigaction _sa;
 
 static bool interrupts_enabled = true;
+
+static void time_int(int signal_num){
+
+        cout << "interrupt has run" << endl;
+        uthread_yield();
+        return;
+
+}
 
 static void disableInterrupts()
 {
         cout << "disable int" << endl;
-        //assert(interrupts_enabled);
-	//sigprocmask(SIG_BLOCK,&_sigAction.sa_mask, NULL);
+        assert(interrupts_enabled);
+	_sa.sa_handler = SIG_IGN;
+        if (sigaction(SIGVTALRM, &_sa, NULL) == -1) {
+        printf("error with: sigaction\n");
+        exit(EXIT_FAILURE);
+        }
         interrupts_enabled = false;
 }
 
@@ -72,17 +73,13 @@ static void enableInterrupts()
         cout << "enabling int" << endl;
         assert(!interrupts_enabled);
         interrupts_enabled = true;
-	sigprocmask(SIG_UNBLOCK,&_sigAction.sa_mask, NULL);
-}
-
-void time(int signal_num){
-
-        cout << "interrupt has run" << endl;
-        uthread_yield();
-        return;
+        _sa.sa_handler = time_int;
+        if (sigaction(SIGVTALRM, &_sa, NULL) == -1) {
+        printf("error with: sigaction\n");
+        exit(EXIT_FAILURE);
+        }
 
 }
-
 
 // Queue Management ------------------------------------------------------------
 
@@ -171,14 +168,24 @@ void stub(void *(*start_routine)(void *), void *arg)
 int uthread_init(int quantum_usecs)
 {
 
-        signal(SIGVTALRM, time);
+        struct itimerval tv;
+
+        sigemptyset(&_sa.sa_mask);
+        _sa.sa_flags = 0;
+        _sa.sa_handler = time_int;
+        if (sigaction(SIGVTALRM, &_sa, NULL) == -1) {
+        printf("error with: sigaction\n");
+        exit(EXIT_FAILURE);
+        }
 
         tv.it_value.tv_sec = 0;
         tv.it_value.tv_usec = quantum_usecs;
         tv.it_interval.tv_sec = 0;
         tv.it_interval.tv_usec = quantum_usecs;
  
-        startInterruptTimer();
+        signal(SIGVTALRM, time_int);
+
+        setitimer(ITIMER_VIRTUAL, &tv, NULL);
 
         TCB* main_thread = new TCB(0, RUNNING);
         //handle error
@@ -191,8 +198,6 @@ int uthread_init(int quantum_usecs)
 
         global_thread_count+=1;
 
-        cout << "main thread created" << endl;
-
         return main_thread->getId();
 
 }
@@ -200,6 +205,8 @@ int uthread_init(int quantum_usecs)
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
         // Create a new thread and add it to the ready queue
+
+        
 
         TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
 
@@ -228,8 +235,9 @@ int uthread_join(int tid, void **retval)
                 john->tcb->setState(BLOCK);
 
                 join_queue.push_back(john);
+                cout << "pre first thread exit" << endl;
                 uthread_yield();
-                cout << "post first thread exit";
+                cout << "post first thread exit" << endl;
         }
         //when the thread is awoken it will return here
         //thread of interest should be terminated/blocked
@@ -269,6 +277,7 @@ void uthread_exit(void *retval)
         // Move any threads joined on this thread back to the ready queue
         // Move this thread to the finished queue
         int exiting_TID = uthread_self();
+        cout << exiting_TID << " exiting... "<< endl;
         
         //if main exit
         if(exiting_TID == 0)
@@ -280,7 +289,6 @@ void uthread_exit(void *retval)
         {
                 //move this thread to finished deque
                 finished_queue_entry_t* fini = new finished_queue_entry_t();
-                cout << (*(unsigned long*)retval) << " retval" << endl;
                 fini->result = retval;
                 fini->tcb = current_thread;
                 fini->tcb->setState(BLOCK);
@@ -289,18 +297,12 @@ void uthread_exit(void *retval)
                 //put main back on ready (using join queue)
                 //iterate through join queue and find a joined thread
 
-                // for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter){
-
-                //         cout << (*iter)->tcb->getId() << "FOR LOOP CHECK" << endl;
-
-                // }
-
                 for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter)
                 {
                         if (exiting_TID == (*iter)->waiting_for_tid)
                         {
-                                cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
-                                cout << exiting_TID << " exiting TID" << endl;
+                                // cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
+                                // cout << exiting_TID << " exiting TID" << endl;
                                 //ready the joined thread
                                 ready_queue.push_back((*iter)->tcb);
                                 //cout << "pushed to readyQ iterTcb:" << (*iter)->tcb->getId() << endl;
@@ -313,8 +315,6 @@ void uthread_exit(void *retval)
                 }
         }
 
-        cout <<"test"<<endl;
-        //exit(0);
 }
 
 int uthread_suspend(int tid)

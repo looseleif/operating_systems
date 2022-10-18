@@ -11,7 +11,7 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
     this->_context.uc_stack.ss_flags = 0;
 
     // check piazza
-    sigaddset(&(this->_context.uc_sigmask), SIGVTALRM);
+    //sigaddset(&(this->_context.uc_sigmask), SIGVTALRM);
 
     this->_state = state;
 

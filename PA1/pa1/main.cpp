@@ -16,7 +16,7 @@ void *worker(void *arg) {
         if (x * x + y * y < 1)
             local_cnt++;
     }
-    cout << local_cnt << " worker local cnt" << endl;
+    cout << local_cnt << " worker local cnt " << my_tid << endl;
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
@@ -46,6 +46,8 @@ int main(int argc, char *argv[]) {
         cerr << "uthread_init FAIL!\n" << endl;
         exit(1);
     }
+
+    //while(1);
 
     srand(time(NULL));
 
