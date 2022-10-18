@@ -131,7 +131,7 @@ static void switchThreads()
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
     //cout << "SWITCH: currentThread = " << currentThread << endl;
-    cout << flag << endl;
+    cout << flag << " flag" << endl;
     // If flag == 1 then it was already set below so this is the second return
     // from getcontext (run this thread)
     if (flag == 1) {
