@@ -184,7 +184,9 @@ int uthread_init(int quantum_usecs)
 
         thread_translation[0] = main_thread;
 
-        addToReadyQueue(main_thread);
+        current_thread = main_thread;
+
+        //addToReadyQueue(main_thread);
 
         global_thread_count+=1;
 
