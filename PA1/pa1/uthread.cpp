@@ -152,7 +152,7 @@ static void switchThreads()
     current_thread->setState(RUNNING);
     cout << "switching to thread " << current_thread->getId() << endl;
     current_thread->loadContext();
-
+    enableInterrupts();
 }
 
 

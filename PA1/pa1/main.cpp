@@ -66,9 +66,6 @@ int main(int argc, char *argv[]) {
         cout << "hi" << endl;
         
         g_cnt += *local_cnt;
-    
-        // REMOVE USING FOR TEST
-        while(true);
 
         // Deallocate thread result
         delete local_cnt;
