@@ -16,10 +16,10 @@ void *worker(void *arg) {
         if (x * x + y * y < 1)
             local_cnt++;
     }
-    cout << local_cnt << " worker local cnt " << my_tid << endl;
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
+    cout << local_cnt << " worker local cnt " << my_tid << endl;
     return return_buffer;
 }
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
         // Add thread result to global total
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
-        cout << "hi" << endl;
+        cout << "thread: " << threads[i] << " has joined!!!" << endl;
         
         g_cnt += *local_cnt;
 

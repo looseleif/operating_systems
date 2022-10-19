@@ -49,7 +49,7 @@ static bool interrupts_enabled = true;
 
 static void time_int(int signal_num){
 
-        cout << "interrupt has run" << endl;
+        //cout << "interrupt has run" << endl;
         uthread_yield();
         return;
 
@@ -57,7 +57,7 @@ static void time_int(int signal_num){
 
 static void disableInterrupts()
 {
-        cout << "disable int" << endl;
+        //cout << "disable int" << endl;
         assert(interrupts_enabled);
 	_sa.sa_handler = SIG_IGN;
         if (sigaction(SIGVTALRM, &_sa, NULL) == -1) {
@@ -70,7 +70,7 @@ static void disableInterrupts()
 // Unblock signals to re-enable timer interrupt
 static void enableInterrupts()
 {
-        cout << "enabling int" << endl;
+        //cout << "enabling int" << endl;
         assert(!interrupts_enabled);
         interrupts_enabled = true;
         _sa.sa_handler = time_int;
@@ -123,26 +123,14 @@ int removeFromReadyQueue(int tid)
 static void switchThreads()
 {
     cout << "switching from thread " << current_thread->getId() << endl;
-    
-    // flag is a local stack variable to each thread
-    volatile int flag = 0;
 
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
-    cout << current_thread->getId() << " threadajsdhjasd" << endl;
     //cout << "SWITCH: currentThread = " << currentThread << endl;
     // If flag == 1 then it was already set below so this is the second return
     // from getcontext (run this thread)
-    cout << flag << " flag DOWNSOME" << endl;
-    if (flag == 1) {
-        cout << "1 flag" << endl;
-        enableInterrupts();
-        return;
-    }
-
 
     // This is the first return from getcontext (switching threads)
-    flag = 1;
     if(current_thread->getState() != BLOCK)
     {
         addToReadyQueue(current_thread);
@@ -164,11 +152,8 @@ static void switchThreads()
 // Starting point for thread. Calls top-level thread function
 void stub(void *(*start_routine)(void *), void *arg)
 {
-        // enable intrrpt
-        cout << "thread " << current_thread->getId() << " executing worker" << endl;
         enableInterrupts();
         uthread_exit(start_routine(arg));
-
 }
 
 int uthread_init(int quantum_usecs)
@@ -241,9 +226,7 @@ int uthread_join(int tid, void **retval)
                 john->tcb->setState(BLOCK);
 
                 join_queue.push_back(john);
-                cout << "pre first thread exit" << endl;
                 uthread_yield();
-                cout << "post first thread exit" << endl;
         }
         //when the thread is awoken it will return here
         //thread of interest should be terminated/blocked
@@ -307,7 +290,7 @@ void uthread_exit(void *retval)
                 {
                         if (exiting_TID == (*iter)->waiting_for_tid)
                         {
-                                // cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
+                                cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
                                 // cout << exiting_TID << " exiting TID" << endl;
                                 //ready the joined thread
                                 ready_queue.push_back((*iter)->tcb);
