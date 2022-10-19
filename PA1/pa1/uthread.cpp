@@ -214,6 +214,7 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
 int uthread_join(int tid, void **retval)
 {
+        cout << "we have entered join" << endl;
         // If the thread specified by tid is already terminated, just return
         // If the thread specified by tid is still running, block until it terminates
         // Set *retval to be the result of thread if retval != nullptr
@@ -298,11 +299,13 @@ void uthread_exit(void *retval)
                                 (*iter)->tcb->setState(READY);
                                 //delete from join queue
                                 join_queue.erase(iter);
-                                cout << exiting_TID << " yielding... "<< endl;
+                                cout << exiting_TID << " yielding... (joined) "<< endl;
                                 uthread_yield();
                                 return;
                         }
                 }
+                cout << exiting_TID << " yielding... (nojoin) "<< endl;
+                uthread_yield();
         }
 
 }
