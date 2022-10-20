@@ -79,16 +79,6 @@ int main(int argc, char *argv[]) {
         delete local_cnt;
     }
 
-    // here we print the quantum totals and thread quantums after execution of our process!
-
-    printf("total quantums: %d\n", uthread_get_total_quantums());
-    printf("main quantums: %d\n",uthread_get_quantums(0));
-    printf("thread 1 quantums: %d\n",uthread_get_quantums(1));
-    printf("thread 2 quantums: %d\n",uthread_get_quantums(2));
-    printf("thread 3 quantums: %d\n",uthread_get_quantums(3));
-    printf("thread 4 quantums: %d\n",uthread_get_quantums(4));
-    printf("thread 5 quantums: %d\n",uthread_get_quantums(5));
-
     delete[] threads;
 
     cout << "Pi: " << (4. * (double)g_cnt) / ((double)points_per_thread * thread_count) << endl;

@@ -167,7 +167,7 @@ int uthread_init(int quantum_usecs)
         setitimer(ITIMER_VIRTUAL, &tv, NULL);
 
         TCB* main_thread = new TCB(0, RUNNING);
-        if(main_thread->getId==-1){
+        if(main_thread->getId()==-1){
                 cerr << "error: Failure to create main thread" << endl;
                 exit(-1);
         }

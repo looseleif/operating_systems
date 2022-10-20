@@ -75,19 +75,9 @@ int main(int argc, char *argv[]) {
 
         uthread_join(threads[i], (void**)&local_cnt);        
         g_cnt += *local_cnt;
-        // Deallocate thread result
+        // deallocate thread result
         delete local_cnt;
     }
-
-    // here we print the quantum totals and thread quantums after execution of our process!
-
-    printf("total quantums: %d\n", uthread_get_total_quantums());
-    printf("main quantums: %d\n",uthread_get_quantums(0));
-    printf("thread 1 quantums: %d\n",uthread_get_quantums(1));
-    printf("thread 2 quantums: %d\n",uthread_get_quantums(2));
-    printf("thread 3 quantums: %d\n",uthread_get_quantums(3));
-    printf("thread 4 quantums: %d\n",uthread_get_quantums(4));
-    printf("thread 5 quantums: %d\n",uthread_get_quantums(5));
 
     delete[] threads;
 

@@ -70,9 +70,10 @@ int main(int argc, char *argv[]) {
         // Deallocate thread result
         delete local_cnt;
     }
-
+    
     // here we print the quantum totals and thread quantums after execution of our process!
-
+    // helpful in testcases, annoying in practice
+    // omit depending on use case
     printf("total quantums: %d\n", uthread_get_total_quantums());
     printf("main quantums: %d\n",uthread_get_quantums(0));
     printf("thread 1 quantums: %d\n",uthread_get_quantums(1));
