@@ -10,9 +10,7 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
     this->_context.uc_stack.ss_size = STACK_SIZE;
     this->_context.uc_stack.ss_flags = 0;
 
-    // check piazza
-    //sigaddset(&(this->_context.uc_sigmask), SIGVTALRM);
-
+    this->_quantum = 0;
     this->_state = state;
 
     makecontext(&(this->_context), (void(*)())stub, 2, start_routine, arg);
@@ -32,6 +30,7 @@ TCB::TCB(int tid, State state)
 
     }
 
+    this->_quantum = 1;
     this->_state = state;
 
 }
@@ -39,7 +38,7 @@ TCB::TCB(int tid, State state)
 TCB::~TCB()
 {
 
-    //delete &(this->_context);
+    delete &(this->_context);
 
 }
 
@@ -67,7 +66,7 @@ int TCB::getId() const
 void TCB::increaseQuantum()
 {
 
-    this->_quantum += 100;
+    this->_quantum += 1;
 
 }
 
@@ -85,5 +84,6 @@ int TCB::saveContext()
 
 void TCB::loadContext()
 {
+    this->increaseQuantum();
     setcontext(&(this->_context));
 }

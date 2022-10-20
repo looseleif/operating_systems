@@ -122,16 +122,11 @@ int removeFromReadyQueue(int tid)
 // Switch to the next ready thread
 static void switchThreads()
 {
-    cout << "switching from thread " << current_thread->getId() << endl;
-
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
-    //cout << "SWITCH: currentThread = " << currentThread << endl;
-    // If flag == 1 then it was already set below so this is the second return
-    // from getcontext (run this thread)
 
     // This is the first return from getcontext (switching threads)
-    if(current_thread->getState() != BLOCK)
+    if(current_thread->getState() != BLOCK && current_thread->getState() != FINISHED)
     {
         addToReadyQueue(current_thread);
         current_thread->setState(READY);
@@ -195,17 +190,18 @@ int uthread_init(int quantum_usecs)
 
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
-        // Create a new thread and add it to the ready queue
+        // create a new thread and add it to the ready queue
+        if(global_thread_count==MAX_THREAD_NUM){
+                cerr << "error: Too many threads created!" << endl;
+                exit(-1);
+        }
 
-        
-
+        // creates new thread instance
         TCB* thread_instance = new TCB(global_thread_count, start_routine, arg, READY);
 
         addToReadyQueue(thread_instance);
 
-        thread_translation[global_thread_count] = thread_instance;
-        cout << "Thread " << thread_instance->getId() << " created" << endl;
-        
+        thread_translation[global_thread_count] = thread_instance;        
         int returnVal = global_thread_count;
         global_thread_count++;
 
@@ -214,13 +210,12 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
 int uthread_join(int tid, void **retval)
 {
-        cout << "we have entered join" << endl;
-        // If the thread specified by tid is already terminated, just return
-        // If the thread specified by tid is still running, block until it terminates
-        // Set *retval to be the result of thread if retval != nullptr
-        if(thread_translation[tid]->getState() != BLOCK)
+        // if the thread specified by tid is already terminated, just return
+        // if the thread specified by tid is still running, block until it terminates
+        // set *retval to be the result of thread if retval != nullptr
+        if(thread_translation[tid]->getState() != FINISHED)
         {
-                //put this thread on join to wait for the thread to finish
+                // put this thread on join to wait for the thread to finish
                 join_queue_entry_t* john = new join_queue_entry_t();
                 john->waiting_for_tid = tid;
                 john->tcb = current_thread;
@@ -229,11 +224,12 @@ int uthread_join(int tid, void **retval)
                 join_queue.push_back(john);
                 uthread_yield();
         }
-        //when the thread is awoken it will return here
-        //thread of interest should be terminated/blocked
-        if(thread_translation[tid]->getState() == BLOCK)
+        
+        // when the thread is awoken it will return here
+        // thread of interest should be terminated/blocked
+        if(thread_translation[tid]->getState() == FINISHED)
         {
-                //return 
+                // return 
                 if(retval != nullptr)
                 {
                         for (deque<finished_queue_entry_t*>::iterator iter = finish_queue.begin(); iter != finish_queue.end(); ++iter)
@@ -244,13 +240,15 @@ int uthread_join(int tid, void **retval)
                                         return 0;
                                 }
                         }
-                        //finished thread was not found
-                        //it should have been in queue due to uthread_exit()
+
+                        // finished thread was not found
+                        // it should have been in queue due to uthread_exit()
                         return -1;
                 }
         }
-        //joined thread should have been terminated
-        //failed to join thread
+
+        // joined thread should have been terminated
+        // failed to join thread
         return -1;
 }
 
@@ -263,17 +261,16 @@ int uthread_yield(void)
 
 void uthread_exit(void *retval)
 {
-        // If this is the main thread, exit the program
-        // Move any threads joined on this thread back to the ready queue
-        // Move this thread to the finished queue
+        // if this is the main thread, exit the program
+        // move any threads joined on this thread back to the ready queue
+        // move this thread to the finished queue
         int exiting_TID = uthread_self();
-        cout << exiting_TID << " exiting... "<< endl;
         
-        //if main exit
+        // if main, exit
         if(exiting_TID == 0)
         {
                 exit(0);
-                //is this exit enough?
+
         }
         else
         {
@@ -281,7 +278,7 @@ void uthread_exit(void *retval)
                 finished_queue_entry_t* fini = new finished_queue_entry_t();
                 fini->result = retval;
                 fini->tcb = current_thread;
-                fini->tcb->setState(BLOCK);
+                fini->tcb->setState(FINISHED);
 
                 finish_queue.push_back(fini);
                 //put main back on ready (using join queue)
@@ -292,19 +289,16 @@ void uthread_exit(void *retval)
                         if (exiting_TID == (*iter)->waiting_for_tid)
                         {
                                 cout << (*iter)->waiting_for_tid << " waiting for tid" << endl;
-                                // cout << exiting_TID << " exiting TID" << endl;
                                 //ready the joined thread
                                 ready_queue.push_back((*iter)->tcb);
                                 //cout << "pushed to readyQ iterTcb:" << (*iter)->tcb->getId() << endl;
                                 (*iter)->tcb->setState(READY);
                                 //delete from join queue
                                 join_queue.erase(iter);
-                                cout << exiting_TID << " yielding... (joined) "<< endl;
                                 uthread_yield();
                                 return;
                         }
                 }
-                cout << exiting_TID << " yielding... (nojoin) "<< endl;
                 uthread_yield();
         }
 
@@ -362,12 +356,17 @@ int uthread_self()
 
 int uthread_get_total_quantums()
 {
-        // TODO
-        return 0;
+        int totalQuant = 0;
+
+        for(int i = 0; i<global_thread_count; i++){
+
+                totalQuant += thread_translation[i]->getQuantum();
+
+        }
+        return totalQuant;
 }
 
 int uthread_get_quantums(int tid)
 {
-        // TODO
-        return 0;
+        return thread_translation[tid]->getQuantum();
 }

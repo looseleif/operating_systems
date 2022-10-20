@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -lrt -g
 DEPS = TCB.h uthread.h
-OBJ = TCB.o uthread.o testcase-3.o
+OBJ = TCB.o uthread.o test_default.o
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) 

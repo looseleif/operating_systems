@@ -7,7 +7,6 @@ void *worker(void *arg) {
 
     int my_tid = uthread_self();
     int points_per_thread = *(int*)arg;
-    cout << "in worker" << endl;
     unsigned long local_cnt = 0;
     unsigned int rand_state = rand();
     for (int i = 0; i < points_per_thread; i++) {
@@ -19,13 +18,12 @@ void *worker(void *arg) {
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
-    cout << local_cnt << " worker local cnt " << my_tid << endl;
     return return_buffer;
 }
 
 int main(int argc, char *argv[]) {
     // Default to 1 ms time quantum
-    int quantum_usecs = 1000;
+    int quantum_usecs = 1000000;
 
     if (argc < 3) {
         cerr << "Usage: ./pi <total points> <threads> [quantum_usecs]" << endl;
@@ -47,8 +45,6 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    //while(1);
-
     srand(time(NULL));
 
     // Create threads
@@ -57,21 +53,41 @@ int main(int argc, char *argv[]) {
         threads[i] = tid;
     }
 
+    // with a large quantum, we can visualize the
+    // suspend of thread 2, 
+    // tm->t1->t3->t4->t5->tm->t2->tm->done
+    // reference quantum counts
+    uthread_suspend(2);
+
+    // with this instance we should actually
+
     // Wait for all threads to complete
     unsigned long g_cnt = 0;
     for (int i = 0; i < thread_count; i++) {
         // Add thread result to global total
         unsigned long *local_cnt;
-        uthread_join(threads[i], (void**)&local_cnt);
-        cout << "thread: " << threads[i] << " has joined!!!" << endl;
-        
-        g_cnt += *local_cnt;
 
+        if(threads[i]==2){
+
+            uthread_resume(2);
+
+        }
+
+        uthread_join(threads[i], (void**)&local_cnt);        
+        g_cnt += *local_cnt;
         // Deallocate thread result
         delete local_cnt;
     }
 
+    // here we print the quantum totals and thread quantums after execution of our process!
 
+    printf("total quantums: %d\n", uthread_get_total_quantums());
+    printf("main quantums: %d\n",uthread_get_quantums(0));
+    printf("thread 1 quantums: %d\n",uthread_get_quantums(1));
+    printf("thread 2 quantums: %d\n",uthread_get_quantums(2));
+    printf("thread 3 quantums: %d\n",uthread_get_quantums(3));
+    printf("thread 4 quantums: %d\n",uthread_get_quantums(4));
+    printf("thread 5 quantums: %d\n",uthread_get_quantums(5));
 
     delete[] threads;
 
