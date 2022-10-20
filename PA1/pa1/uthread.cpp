@@ -6,27 +6,17 @@
 
 using namespace std;
 
-// Finished queue entry type
+// finished queue entry type
 typedef struct finished_queue_entry {
   TCB *tcb;             // Pointer to TCB
   void *result;         // Pointer to thread result (output)
 } finished_queue_entry_t;
 
-// Join queue entry type
+// join queue entry type
 typedef struct join_queue_entry {
   TCB *tcb;             // Pointer to TCB
   int waiting_for_tid;  // TID this thread is waiting on
 } join_queue_entry_t;
-
-// You will need to maintain structures to track the state of threads
-// - uthread library functions refer to threads by their TID so you will want
-//   to be able to access a TCB given a thread ID
-// - Threads move between different states in their lifetime (READY, BLOCK,
-//   FINISH). You will want to maintain separate "queues" (doesn't have to
-//   be that data structure) to move TCBs between different thread queues.
-//   Starter code for a ready queue is provided to you
-// - Separate join and finished "queues" can also help when supporting joining.
-//   Example join and finished queue entry types are provided above
 
 // Queues
 static deque<TCB*> ready_queue;
@@ -34,30 +24,31 @@ static deque<TCB*> block_queue; //may not be necessary?
 static deque<finished_queue_entry_t*> finish_queue;
 static deque<join_queue_entry_t*> join_queue;
 
+// Thread Management --------------------------------------------------------
+
+// used for run-time reference to threads during execution
 static int global_thread_count = 0;
 
 static TCB* current_thread;
-
 static TCB* thread_translation[MAX_THREAD_NUM];
 
 // Interrupt Management --------------------------------------------------------
 
-// Block signals from firing timer interrupt
+// block signals from firing timer interrupt
 static struct sigaction _sa;
 
 static bool interrupts_enabled = true;
 
 static void time_int(int signal_num){
 
-        //cout << "interrupt has run" << endl;
         uthread_yield();
         return;
 
 }
 
+// ignore signals to disable timer interrupt
 static void disableInterrupts()
 {
-        //cout << "disable int" << endl;
         assert(interrupts_enabled);
 	_sa.sa_handler = SIG_IGN;
         if (sigaction(SIGVTALRM, &_sa, NULL) == -1) {
@@ -67,10 +58,9 @@ static void disableInterrupts()
         interrupts_enabled = false;
 }
 
-// Unblock signals to re-enable timer interrupt
+// refresh signals to enable timer interrupt
 static void enableInterrupts()
 {
-        //cout << "enabling int" << endl;
         assert(!interrupts_enabled);
         interrupts_enabled = true;
         _sa.sa_handler = time_int;
@@ -78,18 +68,17 @@ static void enableInterrupts()
         printf("error with: sigaction\n");
         exit(EXIT_FAILURE);
         }
-
 }
 
 // Queue Management ------------------------------------------------------------
 
-// Add TCB to the back of the ready queue
+// add TCB to the back of the ready queue
 void addToReadyQueue(TCB *tcb)
 {
         ready_queue.push_back(tcb);
 }
 
-// Removes and returns the first TCB on the ready queue
+// removes and returns the first TCB on the ready queue
 // NOTE: Assumes at least one thread on the ready queue
 TCB* popFromReadyQueue()
 {
@@ -100,8 +89,8 @@ TCB* popFromReadyQueue()
         return ready_queue_head;
 }
 
-// Removes the thread specified by the TID provided from the ready queue
-// Returns 0 on success, and -1 on failure (thread not in ready queue)
+// removes the thread specified by the TID provided from the ready queue
+// returns 0 on success, and -1 on failure (thread not in ready queue)
 int removeFromReadyQueue(int tid)
 {
         for (deque<TCB*>::iterator iter = ready_queue.begin(); iter != ready_queue.end(); ++iter)
@@ -113,19 +102,19 @@ int removeFromReadyQueue(int tid)
                 }
         }
 
-        // Thread not found
+        // thread not found
         return -1;
 }
 
 // Helper functions ------------------------------------------------------------
 
-// Switch to the next ready thread
+// switch to the next ready thread
 static void switchThreads()
 {
     // getcontext() will "return twice" - Need to differentiate between the two
     int ret_val = current_thread->saveContext();
 
-    // This is the first return from getcontext (switching threads)
+    // this is the first return from getcontext (switching threads)
     if(current_thread->getState() != BLOCK && current_thread->getState() != FINISHED)
     {
         addToReadyQueue(current_thread);
@@ -141,21 +130,22 @@ static void switchThreads()
 
 // Library functions -----------------------------------------------------------
 
-// The function comments provide an (incomplete) summary of what each library
-// function must do
-
-// Starting point for thread. Calls top-level thread function
+// starting point for thread. calls top-level thread function
+// enables interupts as we enter, in prep for switch
 void stub(void *(*start_routine)(void *), void *arg)
 {
         enableInterrupts();
         uthread_exit(start_routine(arg));
 }
 
+// initialize our space for multithreaded applications
+// init and set timer based interrupts
 int uthread_init(int quantum_usecs)
 {
-
+        // necessary struct for configuring timer interrupts
         struct itimerval tv;
 
+        // clear any previous signal sets
         sigemptyset(&_sa.sa_mask);
         _sa.sa_flags = 0;
         _sa.sa_handler = time_int;
@@ -164,33 +154,36 @@ int uthread_init(int quantum_usecs)
         exit(EXIT_FAILURE);
         }
 
+        // sets timer to given quantum
         tv.it_value.tv_sec = 0;
         tv.it_value.tv_usec = quantum_usecs;
         tv.it_interval.tv_sec = 0;
         tv.it_interval.tv_usec = quantum_usecs;
  
+        // adds time_int handler associated with SIGVTALRM
         signal(SIGVTALRM, time_int);
 
+        // starts interrupt timer
         setitimer(ITIMER_VIRTUAL, &tv, NULL);
 
         TCB* main_thread = new TCB(0, RUNNING);
-        //handle error
+        if(main_thread->getId==-1){
+                cerr << "error: Failure to create main thread" << endl;
+                exit(-1);
+        }
 
+        // for purposes of cleanliness, we have assigned main thread to 0
         thread_translation[0] = main_thread;
-
         current_thread = main_thread;
-
-        //addToReadyQueue(main_thread);
-
         global_thread_count+=1;
 
         return main_thread->getId();
 
 }
 
+// create a new thread and add it to the ready queue
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
-        // create a new thread and add it to the ready queue
         if(global_thread_count==MAX_THREAD_NUM){
                 cerr << "error: Too many threads created!" << endl;
                 exit(-1);
@@ -252,6 +245,7 @@ int uthread_join(int tid, void **retval)
         return -1;
 }
 
+// used to properly change context switch between threads
 int uthread_yield(void)
 {
         disableInterrupts();
@@ -270,7 +264,6 @@ void uthread_exit(void *retval)
         if(exiting_TID == 0)
         {
                 exit(0);
-
         }
         else
         {
@@ -281,9 +274,9 @@ void uthread_exit(void *retval)
                 fini->tcb->setState(FINISHED);
 
                 finish_queue.push_back(fini);
+
                 //put main back on ready (using join queue)
                 //iterate through join queue and find a joined thread
-
                 for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter)
                 {
                         if (exiting_TID == (*iter)->waiting_for_tid)
@@ -304,13 +297,14 @@ void uthread_exit(void *retval)
 
 }
 
+// checks thread state and either places on to BLOCK queue or has no action
 int uthread_suspend(int tid)
 {
-        // Move the thread specified by tid from whatever state it is
+        // move the thread specified by tid from whatever state it is
         // in to the block queue
         if(thread_translation[tid]->getState() == BLOCK)
         {
-                //thread already blocked
+                // thread already blocked
                 return -1;
         }
         else if(thread_translation[tid]->getState() == READY)
@@ -328,13 +322,15 @@ int uthread_suspend(int tid)
                 uthread_yield();
                 return 0;
         }
-        //thread does not have a state
+
+        // thread does not have a state
         return -1;
 }
 
+// will unblock specified thread, allowed to resume RR scheduling
 int uthread_resume(int tid)
 {
-        // Move the thread specified by tid back to the ready queue
+        // move the thread specified by tid back to the ready queue
         if(thread_translation[tid]->getState() == BLOCK)
         {
                 thread_translation[tid]->setState(READY);
@@ -343,17 +339,19 @@ int uthread_resume(int tid)
         }
         else
         {
-                //failed to resume
+                // failed to resume
                 return -1;
         }
         
 }
 
+// returns the TID of caller thread
 int uthread_self()
 {
         return current_thread->getId();
 }
 
+// total number of quantums elasped over all threads at time of call
 int uthread_get_total_quantums()
 {
         int totalQuant = 0;
@@ -366,6 +364,7 @@ int uthread_get_total_quantums()
         return totalQuant;
 }
 
+// total number of quantums elasped so far for specified thread
 int uthread_get_quantums(int tid)
 {
         return thread_translation[tid]->getQuantum();
