@@ -14,7 +14,7 @@
 
 extern void stub(void *(*start_routine)(void *), void *arg);
 
-enum State {READY, RUNNING, BLOCK};
+enum State {READY, RUNNING, BLOCK, FINISHED};
 
 /*
  * The thread
@@ -32,6 +32,8 @@ public:
 	 * @param state current state for the new thread
 	 */
 	TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state);
+
+	TCB(int tid, State state);
 	
 	/**
 	 * thread d-tor
