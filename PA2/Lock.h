@@ -19,7 +19,8 @@ public:
 
 private:
   // TODO - Add members as needed
-
+  static queue<TCB*> waiting_for_lock;
+  static TCB* current_owner; 
   // Unlock the lock while interrupts have already been disabled
   // NOTE: Assumes interrupts are disabled
   void _unlock();
