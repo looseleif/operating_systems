@@ -23,9 +23,13 @@ void Lock::lock()
     else
     {
         //add to waiting queue and suspend this thread
+        disableInterrupts();
+
         waiting_for_lock.push(running);
         running->setState(BLOCK);
+
         switchThreads();
+        enableInterrupts();
     }
 
     return;
@@ -43,12 +47,14 @@ void Lock::unlock()
         return;
 
     } else {
+        disableInterrupts();
 
         current_owner->setState(READY);
         addToReady(current_owner);
         current_owner = waiting_for_lock.front();
-        switchToThread(current_owner);
 
+        switchToThread(current_owner);
+        enableInterrupts();
     }
 
 }

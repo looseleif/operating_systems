@@ -17,18 +17,23 @@ static int item_count = 0;
 
 void* meansOfProduction(void *arg) {
   while (true) {
-    buffer_lock.lock();
+    //buffer_lock.lock();
 
-    item_count++;
+    for(int i = 0; i < 100; i++)
+    {
+      item_count++;
+    }
 
     cout << item_count << " items counted!" << endl;
 
-    buffer_lock.unlock();
+    //buffer_lock.unlock();
 
     // Randomly give another thread a chance
+    /*
     if ((rand() % 100) < RANDOM_YIELD_PERCENT) {
       uthread_yield();
     }
+    */
 
   }
 
