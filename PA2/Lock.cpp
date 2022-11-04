@@ -9,7 +9,7 @@ Lock::Lock()
 
 Lock::~Lock()
 {
-    //TODO
+    
 }
 
 void Lock::lock()
@@ -28,12 +28,32 @@ void Lock::lock()
     else
     {
         //add to waiting queue and suspend this thread
-        waiting_for_lock.push_back(running);
-        
+        this->waiting_for_lock.push(running);
+        running->setState(BLOCK);
+        switchThreads();
     }
+
+    return;
+
 }
 
 void Lock::unlock()
 {
+
+    int calling_tid = running->getId();
+
+    if(this->waiting_for_lock.empty()){
+
+        current_owner = nullptr;
+        return;
+
+    } else {
+
+        current_owner->setState(READY);
+        addToReady(current_owner);
+        current_owner = this->waiting_for_lock.front();
+        switchToThread(current_owner);
+
+    }
 
 }

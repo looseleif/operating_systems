@@ -4,10 +4,12 @@
 #include "TCB.h"
 #include <queue>
 
+using namespace std;
 // Synchronization lock
 class Lock {
 public:
   Lock();
+  ~Lock();
 
   // Attempt to acquire lock. Grab lock if available, otherwise thread is
   // blocked until the lock becomes available
