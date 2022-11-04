@@ -1,3 +1,9 @@
-Names: 
+Names: Emir Sahbegovic, Chase Anderson
 
 // TODO
+To run the testcase for the intermediate submission:
+1. First run "make" in the PA2 directory
+2. Then run "./uthread-sync-demo <num_threads>" where <num_threads> is an integer.
+
+When using locks, the output should print multiples of 100. 
+When the locks are removed or commented out of the function, you will see that the function lacks mutual exclusion because the outputted numbers will sometimes not be multiples of 100.
