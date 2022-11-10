@@ -1,5 +1,6 @@
 #include "uthread.h"
 #include "Lock.h"
+#include "SpinLock.h"
 #include "CondVar.h"
 #include <cassert>
 #include <cstdlib>
@@ -12,7 +13,7 @@ using namespace std;
 #define PRINT_FREQUENCY 100000
 #define RANDOM_YIELD_PERCENT 50
 
-static Lock buffer_lock;
+static SpinLock buffer_lock;
 static int item_count = 0;
 
 void* meansOfProduction(void *arg) {
