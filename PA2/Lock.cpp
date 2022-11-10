@@ -58,3 +58,13 @@ void Lock::unlock()
     }
 
 }
+
+void Lock::_signal(TCB *tcb)
+{
+
+}
+
+void Lock::_unlock()
+{
+
+}
