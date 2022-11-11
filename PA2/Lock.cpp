@@ -5,6 +5,7 @@
 Lock::Lock()
 {
     current_owner = nullptr;
+    is_sig = false;
 }
 
 void Lock::lock()
@@ -52,7 +53,7 @@ void Lock::unlock()
         current_owner->setState(READY);
         addToReady(current_owner);
         current_owner = waiting_for_lock.front();
-
+        waiting_for_lock.pop();
         switchToThread(current_owner);
         enableInterrupts();
     }
@@ -62,9 +63,30 @@ void Lock::unlock()
 void Lock::_signal(TCB *tcb)
 {
 
+    is_sig = true;
+    return_thread = running;
+    switchToThread(tcb);
+
 }
 
 void Lock::_unlock()
 {
+
+ int calling_tid = running->getId();
+
+    if(waiting_for_lock.empty()){
+
+        current_owner = nullptr;
+        return;
+
+    } else {
+
+        current_owner->setState(READY);
+        addToReady(current_owner);
+        current_owner = waiting_for_lock.front();
+
+        switchToThread(current_owner);
+
+    }
 
 }

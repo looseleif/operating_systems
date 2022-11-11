@@ -28,7 +28,10 @@ public:
   void broadcast();
 
 private:
-  // TODO - Add members as needed
+  
+  Lock _heldLock;
+  queue<TCB*> waiting_for_signal;
+
 };
 
 #endif // COND_VAR_H

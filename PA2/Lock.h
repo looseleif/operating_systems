@@ -22,6 +22,9 @@ private:
   // TODO - Add members as needed
   queue<TCB*> waiting_for_lock;
   TCB* current_owner; 
+
+  bool is_sig;
+  TCB* return_thread;
   // Unlock the lock while interrupts have already been disabled
   // NOTE: Assumes interrupts are disabled
   void _unlock();

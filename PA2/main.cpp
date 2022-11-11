@@ -13,7 +13,7 @@ using namespace std;
 #define PRINT_FREQUENCY 100000
 #define RANDOM_YIELD_PERCENT 50
 
-static SpinLock buffer_lock;
+static Lock buffer_lock;
 static int item_count = 0;
 
 void* meansOfProduction(void *arg) {
@@ -28,13 +28,6 @@ void* meansOfProduction(void *arg) {
     cout << item_count << " items counted!" << endl;
 
     buffer_lock.unlock();
-
-    // Randomly give another thread a chance
-    /*
-    if ((rand() % 100) < RANDOM_YIELD_PERCENT) {
-      uthread_yield();
-    }
-    */
 
   }
 
