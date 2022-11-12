@@ -54,13 +54,14 @@ void assert_buffer_invariants() {
 void* producer(void *arg) {
   while (true) {
     buffer_lock.lock();
-    cout << "Producer executing" << endl;
     // Wait for room in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == SHARED_BUFFER_SIZE) {
       cout << "Waiting : buffer full" << endl;
       need_space_cv.wait(buffer_lock);
     }
+
+    //cout << "Producer executing" << endl;
 
     // Make sure synchronization is working correctly
     assert(!producer_in_critical_section);
@@ -91,14 +92,14 @@ void* producer(void *arg) {
 void* consumer(void *arg) {
   while (true) {
     buffer_lock.lock();
-    cout << "Conusmer executing" << endl;
+    
     // Wait for an item in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == 0) {
       cout << "Waiting : buffer empty" << endl;
       need_item_cv.wait(buffer_lock);
     }
-
+    //cout << "Conusmer executing" << endl;
     // Make sure synchronization is working correctly
     assert(!consumer_in_critical_section);
     consumer_in_critical_section = true;
@@ -119,6 +120,7 @@ void* consumer(void *arg) {
     need_space_cv.signal();
 
     consumer_in_critical_section = false;
+    //cout << "Consumer done." << endl;
     buffer_lock.unlock();
 
     // Randomly give another thread a chance
@@ -165,6 +167,7 @@ int main(int argc, char *argv[]) {
   int *consumer_threads = new int[consumer_count];
   for (int i = 0; i < consumer_count; i++) {
     consumer_threads[i] = uthread_create(consumer, nullptr);
+    //cout << "Consumer created." << endl;
     if (consumer_threads[i] < 0) {
       cerr << "Error: uthread_create consumer" << endl;
     }

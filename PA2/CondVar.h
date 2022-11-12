@@ -29,7 +29,7 @@ public:
 
 private:
   
-  Lock _heldLock;
+  Lock* _heldLock;
   queue<TCB*> waiting_for_signal;
 
 };

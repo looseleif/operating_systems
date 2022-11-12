@@ -23,7 +23,7 @@ private:
   queue<TCB*> waiting_for_lock;
   TCB* current_owner; 
 
-  int _is_sig;
+  bool _is_sig;
   TCB* return_thread;
   // Unlock the lock while interrupts have already been disabled
   // NOTE: Assumes interrupts are disabled

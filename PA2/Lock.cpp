@@ -6,7 +6,7 @@ Lock::Lock()
 {
     current_owner = nullptr;
     return_thread = nullptr;
-    _is_sig = 0;
+    _is_sig = false;
 }
 
 void Lock::lock()
@@ -40,15 +40,16 @@ void Lock::lock()
 
 void Lock::unlock()
 {
-
     int calling_tid = running->getId();
     cout << "Unlocking... sig=" << _is_sig << endl;
-    if(_is_sig == 1)
+    if(_is_sig)
     {
+        disableInterrupts();
         cout << "signaled thread releasing lock, going back to signaler" << endl;
-        _is_sig = 0;
+        _is_sig = false;
         current_owner = return_thread;
         switchToThread(return_thread);
+        enableInterrupts();
     }
     else if(waiting_for_lock.empty())
     {
@@ -71,8 +72,7 @@ void Lock::unlock()
 
 void Lock::_signal(TCB *tcb)
 {
-
-    _is_sig = 1;
+    _is_sig = true;
     return_thread = running;
     cout << "Return thread set... switching to signaled thread." << endl;
     cout << _is_sig << endl;
@@ -85,12 +85,13 @@ void Lock::_unlock()
 {
     int calling_tid = running->getId();
     cout << "_Unlocking... sig=" << _is_sig << endl;
-    if(_is_sig == 1)
+    if(_is_sig)
     {
         cout << "signaled thread releasing lock, going back to signaler" << endl;
-        _is_sig = 0;
+        _is_sig = false;
         current_owner = return_thread;
         switchToThread(return_thread);
+
     }
     else if(waiting_for_lock.empty())
     {

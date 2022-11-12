@@ -10,10 +10,10 @@ CondVar::CondVar()
 void CondVar::wait(Lock &lock)
 {
     
-    _heldLock = lock;
+    _heldLock = &lock;
     disableInterrupts();
     waiting_for_signal.push(running);
-    lock._unlock();
+    _heldLock->_unlock();
     enableInterrupts();
 
 }
@@ -33,7 +33,7 @@ void CondVar::signal()
     cout << "Signalling..." << endl;
     TCB* retrieved = waiting_for_signal.front();
     waiting_for_signal.pop();
-    _heldLock._signal(retrieved);
+    _heldLock->_signal(retrieved);
 
     enableInterrupts();
 
