@@ -41,12 +41,13 @@ void Lock::lock()
 void Lock::unlock()
 {
     int calling_tid = running->getId();
-    cout << "Unlocking... sig=" << _is_sig << endl;
+    //cout << "Unlocking... sig=" << _is_sig << endl;
     if(_is_sig)
     {
         disableInterrupts();
-        cout << "signaled thread releasing lock, going back to signaler" << endl;
+        //cout << "signaled thread releasing lock, going back to signaler" << endl;
         _is_sig = false;
+        addToReady(current_owner);
         current_owner = return_thread;
         switchToThread(return_thread);
         enableInterrupts();
@@ -74,8 +75,8 @@ void Lock::_signal(TCB *tcb)
 {
     _is_sig = true;
     return_thread = running;
-    cout << "Return thread set... switching to signaled thread." << endl;
-    cout << _is_sig << endl;
+    //cout << "Return thread set... switching to signaled thread." << endl;
+    //cout << _is_sig << endl;
     current_owner = tcb;
     switchToThread(tcb);
 
@@ -84,13 +85,16 @@ void Lock::_signal(TCB *tcb)
 void Lock::_unlock()
 {
     int calling_tid = running->getId();
-    cout << "_Unlocking... sig=" << _is_sig << endl;
+    //cout << "_Unlocking... sig=" << _is_sig << endl;
     if(_is_sig)
     {
-        cout << "signaled thread releasing lock, going back to signaler" << endl;
+        disableInterrupts();
+        //cout << "signaled thread releasing lock, going back to signaler (SPECIAL)" << endl;
         _is_sig = false;
+        addToReady(current_owner);
         current_owner = return_thread;
         switchToThread(return_thread);
+        enableInterrupts();
 
     }
     else if(waiting_for_lock.empty())
@@ -99,7 +103,7 @@ void Lock::_unlock()
         current_owner = nullptr;
         switchThreads();
     } else {
-        cout << "Chaning lock ownership and blocking..." << endl;
+        //cout << "Chaning lock ownership and blocking..." << endl;
         //current_owner->setState(READY);
         //addToReady(current_owner);
         current_owner = waiting_for_lock.front();

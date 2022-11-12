@@ -57,11 +57,11 @@ void* producer(void *arg) {
     // Wait for room in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == SHARED_BUFFER_SIZE) {
-      cout << "Waiting : buffer full" << endl;
+      //cout << "Waiting : buffer full" << endl;
       need_space_cv.wait(buffer_lock);
     }
 
-    //cout << "Producer executing" << endl;
+    //cout << "Producer executing, items=" << item_count << endl;
 
     // Make sure synchronization is working correctly
     assert(!producer_in_critical_section);
@@ -96,10 +96,10 @@ void* consumer(void *arg) {
     // Wait for an item in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == 0) {
-      cout << "Waiting : buffer empty" << endl;
+      //cout << "Waiting : buffer empty" << endl;
       need_item_cv.wait(buffer_lock);
     }
-    //cout << "Conusmer executing" << endl;
+    //cout << "Conusmer executing items=" << item_count << endl;
     // Make sure synchronization is working correctly
     assert(!consumer_in_critical_section);
     consumer_in_critical_section = true;
