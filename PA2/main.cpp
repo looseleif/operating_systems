@@ -54,10 +54,11 @@ void assert_buffer_invariants() {
 void* producer(void *arg) {
   while (true) {
     buffer_lock.lock();
-
+    cout << "Producer executing" << endl;
     // Wait for room in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == SHARED_BUFFER_SIZE) {
+      cout << "Waiting : buffer full" << endl;
       need_space_cv.wait(buffer_lock);
     }
 
@@ -90,10 +91,11 @@ void* producer(void *arg) {
 void* consumer(void *arg) {
   while (true) {
     buffer_lock.lock();
-
+    cout << "Conusmer executing" << endl;
     // Wait for an item in the buffer if needed
     // NOTE: Assuming Hoare semantics
     if (item_count == 0) {
+      cout << "Waiting : buffer empty" << endl;
       need_item_cv.wait(buffer_lock);
     }
 

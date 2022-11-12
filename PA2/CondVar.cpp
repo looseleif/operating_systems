@@ -23,14 +23,14 @@ void CondVar::signal()
     
     if(waiting_for_signal.empty()){
         
-        disableInterrupts();
-        _heldLock._unlock();
-        enableInterrupts();
+        //disableInterrupts();
+        //_heldLock._unlock();
+        //enableInterrupts();
 
     } else {
     
     disableInterrupts();
-    
+    cout << "Signalling..." << endl;
     TCB* retrieved = waiting_for_signal.front();
     waiting_for_signal.pop();
     _heldLock._signal(retrieved);
