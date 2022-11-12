@@ -5,6 +5,7 @@
 Lock::Lock()
 {
     current_owner = nullptr;
+    return_thread = nullptr;
     is_sig = false;
 }
 
@@ -41,8 +42,13 @@ void Lock::unlock()
 {
 
     int calling_tid = running->getId();
-
-    if(waiting_for_lock.empty()){
+    if(is_sig)
+    {
+        is_sig = !is_sig;
+        current_owner = return_thread;
+        switchToThread(return_thread);
+    }
+    else if(waiting_for_lock.empty()){
 
         current_owner = nullptr;
         return;
@@ -65,6 +71,7 @@ void Lock::_signal(TCB *tcb)
 
     is_sig = true;
     return_thread = running;
+    current_owner = tcb;
     switchToThread(tcb);
 
 }
@@ -72,19 +79,24 @@ void Lock::_signal(TCB *tcb)
 void Lock::_unlock()
 {
 
- int calling_tid = running->getId();
+    int calling_tid = running->getId();
 
-    if(waiting_for_lock.empty()){
-
+    if(is_sig)
+    {
+        is_sig = !is_sig;
+        current_owner = return_thread;
+        switchToThread(return_thread);
+    }
+    else if(waiting_for_lock.empty())
+    {
         current_owner = nullptr;
         return;
-
     } else {
 
-        current_owner->setState(READY);
-        addToReady(current_owner);
+        //current_owner->setState(READY);
+        //addToReady(current_owner);
         current_owner = waiting_for_lock.front();
-
+        waiting_for_lock.pop();
         switchToThread(current_owner);
 
     }
