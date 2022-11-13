@@ -24,3 +24,25 @@ the expected gap between spin locks and locks less noticable.
   In conclusion, we expected locks to perform noticably better than spin locks, but the difference did not seem to be as large as we thought it would be.
 It is important to consider that regular locks have considerable overhead to manage the blocking and switching between threads. This makes it less efficient 
 when dealing with simple test cases like ours.
+
+Priority Scheduling & Inversion:
+
+  Priority scheduling was implemented the uthread library in the form of a 3 level system. The TCB's have been added a _priority member. 
+  The TCB class also includes an increase and decrease priority method. Using the provided labels of RED, ORANGE, and GREEN in decreasing order of priority. 
+  Our scheduler had 3 ready queues that would be pointed to by vector<TCB*> ready. Then the queues would be scheduled according to their priority, 
+  when emptied moving to the next lower queue. After all threads are removed and placed in to vector<TCB*> ran, they will be repopulated to their respective 
+  queues for another rotation.
+  
+  
+  Our programs labled "prior" were used in developing both the scheduling scheme and inversion protocol. The attempt at priority inversion was unsuccessful, 
+  but the relevant portion of code is marked with "// ---" and title. The testcase that would have been used would address the issues of a lower priority 
+  thread holding a lock, while a higher priority thread is scheduled from a higher priority ready queue. When the higher priority thread signals to lock, 
+  the lock owning thread will have its priority boosted to the lock requesting thread's priority. This allows for less wasted time in the average case. 
+  When the lock possessing thread goes to unlock, the thread will lower its priority to its original level and the standard scheduling scheme will resume. 
+  It is not confirmed if this solution will work with nested priority inversions.
+
+  Namely, if we have a two thread system, T1 with priority RED, and T2 with priority GREEN. The scheduler will run T1 then T2 and repeat. 
+  In this instance T2 could hold the lock, then with a quantum expiration, there will be a switch to T1 with a request for the lock that it still cant aquire. 
+  Here, the inversion solution will have T2's priority temporarily boosted to RED, so that it is scheduled with respect to the RED prioirty queue. 
+  After the process concludes the critical section and releases the lock, T2's priority will then fall to its original of GREEN, then allowing T1 
+  to aquire the lock and complete the RED queue's rotation. Then the scheduler will continue normally.
