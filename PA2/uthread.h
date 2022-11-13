@@ -53,7 +53,4 @@ int uthread_get_quantums(int tid);
 // Return 0 on success, -1 on failure
 int uthread_increase_priority(int tid);
 
-/* Decrease the thread's priority by one level */
-int uthread_decrease_priority(int tid);
-
 #endif
