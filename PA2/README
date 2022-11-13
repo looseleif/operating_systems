@@ -1,9 +1,26 @@
 Names: Emir Sahbegovic, Chase Anderson
 
-// TODO
-To run the testcase for the intermediate submission:
-1. First run "make" in the PA2 directory
-2. Then run "./uthread-sync-demo <num_threads>" where <num_threads> is an integer.
+Instructions to compile and use:
+1. First run "make" in the PA2 directory. This should create an executable for each test case.
+2. Some test cases require one integer (lockSpeedTest and spinLockSpeedTest), all others require two.
+3. They can be run as expected: when in the PA2 folder, run "./<testcase name> <num_producers> <num_consumers>". or "./<testcase name> <num_threads>".
 
-When using locks, the output should print multiples of 100. 
-When the locks are removed or commented out of the function, you will see that the function lacks mutual exclusion because the outputted numbers will sometimes not be multiples of 100.
+Performance Evaluation:
+
+  It would seem that the regular lock has slightly better performance than the spin lock on average. However, with our relatively simple test cases, both versions
+of the lock gave similar performance results. This makes sense because the spin locks rely on busy waiting rather than blocking and signaling. We believe that
+with a more complex test case and a larger amount of threads, the regular lock would be more efficient. Refer to the image "lockAndSpin50" to see the
+results.
+  As expected, when the size of a critical section increases, so too does the amount of time required for both locks. It was hard to say exactly which one suffers
+more of a performance loss than the other, but we do have an example. In the images "lock25x100" and "lock25x200" we show the performance results when increasing
+the critical section size whilst using regular locks. Both show an execution that uses 25 threads, but the first one shows the results for a critical section size
+of 100 and the second shows a size of 200. As you can see, the time required increased by about 29%. We did the same for the spin locks
+(images "spin25x100" and "spin25x200") and found that, although the spin locks took longer, the time required increased by 20%. This is interesting because we
+would expect that spin locks suffer more of a performance loss due to the fact that busy waiting would become more of a problem as the size of the critical section
+increases. Due to time constraints, we did not test this more thoroughly.
+  If there were multiple cores, both locks would be more efficient. I think that the busy waiting portion of the spin locks would not be as much of an issue
+because there are multiple cores executing in parallel. This means that even if one core is busy waiting, some other core can still make progress. This would make
+the expected gap between spin locks and locks less noticable.
+  In conclusion, we expected locks to perform noticably better than spin locks, but the difference did not seem to be as large as we thought it would be.
+It is important to consider that regular locks have considerable overhead to manage the blocking and switching between threads. This makes it less efficient 
+when dealing with simple test cases like ours.
