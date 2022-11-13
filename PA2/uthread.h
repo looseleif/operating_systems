@@ -56,4 +56,7 @@ int uthread_increase_priority(int tid);
 /* Decrease the thread's priority by one level */
 int uthread_decrease_priority(int tid);
 
+// delete later
+int delete_get_prior(int tid);
+
 #endif

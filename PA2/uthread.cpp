@@ -34,9 +34,18 @@ typedef struct finished_queue_entry {
   void *result;
 } finished_queue_entry_t;
 
-static vector<TCB*> ready; // ready queue
+static vector<TCB*> ran; // red ready queue
+
+static vector<TCB*> RED_ready; // red ready queue
+static vector<TCB*> ORANGE_ready; // orange ready queue
+static vector<TCB*> GREEN_ready; // green ready queue
+
+static vector<TCB*> *ready = &RED_ready; // ready queue pointer
+
 TCB* running; // The "Running" thread.
+
 static vector<TCB*> blocked; // The "Blocked" vector, which represents a queue of threads.
+
 static vector<join_queue_entry_t> join_queue;
 static vector<finished_queue_entry_t> finished_queue;
 static map<int, TCB*> _threads; // All threads together
@@ -119,7 +128,7 @@ void addToReady(TCB* th)
 	{
 		return;
 	}
-    ready.insert(ready.end(), th);
+    ready->insert(ready->end(), th);
 }
 
 
@@ -141,8 +150,8 @@ static void setTime()
  */
 TCB* getReady()
 {
-	TCB* ret = ready[0];
-	ready.erase(ready.begin());
+	TCB* ret = (*ready)[0];
+	ready->erase(ready->begin());
 	return ret;
 }
 
@@ -152,10 +161,43 @@ TCB* getReady()
  */
 TCB* popReady()
 {
-    if(!ready.empty()){
-        return getReady();
-    }
+	if(ran.size()==(_threads.size()-1)){
 
+		for(int i = 1; i<_threads.size(); i++){
+
+			if(_threads[i]->getPriority()==RED){
+
+				ready = &RED_ready;
+
+			}else if(_threads[i]->getPriority()==ORANGE){
+
+				ready = &ORANGE_ready;
+				
+			}else if(_threads[i]->getPriority()==GREEN){
+
+				ready = &GREEN_ready;
+
+			}
+
+			addToReady(_threads[i]);
+
+
+		}
+
+		ran.clear();
+
+	}
+
+	if(!RED_ready.empty()){
+		ready = &RED_ready;
+	} else if (!ORANGE_ready.empty()){
+		ready = &ORANGE_ready;
+	} else if(!GREEN_ready.empty()){
+		ready = &GREEN_ready;
+	}
+    if(!(ready->empty())){
+        return getReady();
+    }	
 	return NULL;
 }
 
@@ -165,13 +207,13 @@ TCB* popReady()
  */
 int removeFromReady(int tid)
 {
-	if(find(ready.begin(), ready.end(), _threads[tid]) != ready.end())
+	if(find(ready->begin(), ready->end(), _threads[tid]) != ready->end())
 	{
-		for (vector<TCB*>::iterator iter = ready.begin(); iter != ready.end(); ++iter)
+		for (vector<TCB*>::iterator iter = ready->begin(); iter != ready->end(); ++iter)
 		{
 			if (*iter == _threads.at(tid))
 			{
-				ready.erase(iter);
+				ready->erase(iter);
 				return SUCCESS;
 			}
 		}
@@ -275,7 +317,6 @@ void switchToThread(TCB *next)
         running->increaseQuantum();
         _quantum_counter++;
         setTime();
-
         // Switch to the new thread
         setcontext(running->getContext());
         assert(false);
@@ -360,10 +401,11 @@ int uthread_init(int quantum_usecs)
 	_timer.it_interval.tv_usec = quantum_usecs % MICRO_TO_SECOND;
 
 	//initialize main
-	TCB* mainTh = new TCB(0, NULL, NULL, READY);
+	TCB* mainTh = new TCB(0, NULL, NULL, READY, ORANGE);
 	_threads.insert(pair<int, TCB*>(0, mainTh));
 	running = mainTh;
 	mainTh->setState(RUNNING);
+	mainTh->setPriority(ORANGE);
 	mainTh->increaseQuantum();
 	_quantum_counter++;
 	setTime();
@@ -384,8 +426,22 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
         disableInterrupts();
 
 	int tid = getNextId();
-	TCB* th = new TCB(tid, start_routine, arg, READY);
+	TCB* th = new TCB(tid, start_routine, arg, READY, ORANGE);
 	_threads.insert(pair<int, TCB*>(tid, th));
+
+	if(th->getPriority()==RED){
+
+		ready = &RED_ready;
+
+	}else if(th->getPriority()==ORANGE){
+
+		ready = &ORANGE_ready;
+		
+	}else if(th->getPriority()==GREEN){
+
+		ready = &GREEN_ready;
+
+	}
 
 	addToReady(th);
 
@@ -436,11 +492,21 @@ int uthread_yield(void)
 {
  	disableInterrupts();
 
+	if(running->getPriority()==RED){
+		ready = &RED_ready;
+	} else if (running->getPriority()==ORANGE){
+		ready = &ORANGE_ready;
+	} else if(running->getPriority()==GREEN){
+		ready = &GREEN_ready;
+	}
+
         // Move the running thread to the ready state
  	running->setState(READY);
-        addToReady(running);
+        //addToReady(running);
+	ran.push_back(running);
 
-        // Switch to another thread
+	//cout << ran.size() << " and " << _threads.size()-1 << endl;
+
  	switchThreads();
 
  	enableInterrupts();
@@ -579,13 +645,59 @@ int uthread_get_quantums(int tid)
 /* Increase the thread's priority by one level */
 int uthread_increase_priority(int tid)
 {
-    // TODO
-    return 0;
+    if(_threads[tid]->getPriority()==GREEN){
+		_threads[tid]->setPriority(ORANGE);
+		return 0;
+	} else if(_threads[tid]->getPriority()==ORANGE){
+		_threads[tid]->setPriority(RED);
+		return 0;
+	} else if(_threads[tid]->getPriority()==RED){
+		return 0;
+	} else {
+
+		return -1;
+
+	}
 }
 
 /* Decrease the thread's priority by one level */
 int uthread_decrease_priority(int tid)
 {
-    // TODO
-    return 0;
+	if(_threads[tid]->getPriority()==RED){
+		_threads[tid]->setPriority(ORANGE);
+		return 0;
+	} else if(_threads[tid]->getPriority()==ORANGE){
+		_threads[tid]->setPriority(GREEN);
+		return 0;
+	} else if(_threads[tid]->getPriority()==GREEN){
+		return 0;
+	} else {
+
+		return -1;
+
+	}
+}
+
+int delete_get_prior(int tid)
+{
+
+	if(_threads[tid]->getPriority()==RED){
+
+		return 1;
+
+	}
+
+	if(_threads[tid]->getPriority()==ORANGE){
+
+		return 0;
+		
+	}
+
+	if(_threads[tid]->getPriority()==GREEN){
+
+		return -1;
+		
+	}
+
+	return -2;
 }
