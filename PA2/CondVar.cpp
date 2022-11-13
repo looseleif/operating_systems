@@ -42,5 +42,25 @@ void CondVar::signal()
 
 void CondVar::broadcast()
 {
+    
+    if(waiting_for_signal.empty()){
+        
+        //disableInterrupts();
+        //_heldLock._unlock();
+        //enableInterrupts();
 
+    } else {
+    
+    disableInterrupts();
+    //cout << "Broadcasting..." << endl;
+    while(!(waiting_for_signal.empty()))
+    {
+    	TCB* retrieved = waiting_for_signal.front();
+    	waiting_for_signal.pop();
+    	_heldLock->_signal(retrieved);
+    }
+
+    enableInterrupts();
+
+    }
 }
