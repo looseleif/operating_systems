@@ -29,7 +29,7 @@ void* testFunction(void *arg) {
     assert(!producer_in_critical_section);
     producer_in_critical_section = true;
     
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 200; i++)
     {
     	item_count++;
     }
@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
   }
   
   //start lock timer
+  cout << "Lock test starting..." << endl;
   high_resolution_clock::time_point lock1 = high_resolution_clock::now();
   
   // Create producer threads

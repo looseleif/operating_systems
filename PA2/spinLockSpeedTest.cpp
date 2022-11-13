@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
   }
   
   //start lock timer
+  cout << "Spin test starting..." << endl;
   high_resolution_clock::time_point lock1 = high_resolution_clock::now();
   
   // Create producer threads
