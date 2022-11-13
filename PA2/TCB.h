@@ -15,7 +15,6 @@
 extern void stub(void *(*start_routine)(void *), void *arg);
 
 enum State {READY, RUNNING, BLOCK};
-enum Priority {RED, ORANGE, GREEN};
 
 /*
  * The thread
@@ -32,7 +31,7 @@ public:
          * @param arg the thread function argument
 	 * @param state current state for the new thread
 	 */
-	TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state, Priority priority);
+	TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state);
 	
 	/**
 	 * thread d-tor
@@ -90,20 +89,6 @@ public:
 	 */
 	ucontext_t* getContext();
 
-	/**
-	 * function to set the thread priority
-	 * @param priority the new priority for our thread
-	 */
-	void setPriority(Priority prio);
-	
-	/**
-	 * function that gets the priorty of the thread
-	 * @return the current priority of the thread
-	 */
-	Priority getPriority() const;
-
-
-
 private:
 	int _tid;               // The thread id number.
 	int _quantum;           // The time interval, as explained in the pdf.
@@ -111,7 +96,6 @@ private:
 	int _lock_count;        // The number of locks held by the thread
 	char* _stack;           // The thread's stack
 	ucontext_t _context;    // The thread's saved context
-	Priority _priority;
 };
 
 

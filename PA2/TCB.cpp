@@ -5,7 +5,7 @@
 #include "TCB.h"
 #include <cassert>
 
-TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state, Priority priority): _tid(tid), _quantum(0), _state(state), _priority(priority), _lock_count(0)
+TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state): _tid(tid), _quantum(0), _state(state), _lock_count(0)
 {
         _stack = nullptr;
 
@@ -13,19 +13,6 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state, Pri
         // thread
         if (start_routine != NULL)
         {
-                
-                if(_tid==3){
-
-                        _priority = RED;
-
-                }
-
-                if(_tid==2){
-
-                        _priority = GREEN;
-
-                }
-
                 // Allocate a stack for the new thread
 	        _stack = new char[STACK_SIZE];
 
@@ -92,14 +79,4 @@ int TCB::getLockCount()
 ucontext_t* TCB::getContext()
 {
 	return &_context;
-}
-
-void TCB::setPriority(Priority priority)
-{
-	_priority = priority;
-}
-
-Priority TCB::getPriority() const
-{
-	return _priority;
 }
