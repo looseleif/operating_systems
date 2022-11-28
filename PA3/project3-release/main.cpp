@@ -22,6 +22,11 @@ typedef void (*program_f)(char *data, int length);
 
 // Number of physical frames
 int nframes;
+int fifoIndex = 0;
+
+// frameTabel generation:
+int *frameTable;
+//int frameTable[nframes] = {}
 
 // Pointer to disk for access from handlers
 struct disk *disk = nullptr;
@@ -38,8 +43,25 @@ void page_fault_handler_example(struct page_table *pt, int page) {
 
 	// Map the page to the same frame number and set to read/write
 	// TODO - Disable exit and enable page table update for example
-	exit(1);
-	//page_table_set_entry(pt, page, page, PROT_READ | PROT_WRITE);
+	//exit(1);
+	page_table_set_entry(pt, page, page, PROT_READ | PROT_WRITE);
+
+	// Print the page table contents
+	cout << "After ----------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+}
+
+void page_fault_handler_fifo(struct page_table *pt, int page) {
+	cout << "page fault on page #" << page << endl;
+
+	// Print the page table contents
+	cout << "Before ---------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+
+	//page_table_get_entry(pt, page, ,)
+
 
 	// Print the page table contents
 	cout << "After ----------------------------" << endl;
@@ -61,6 +83,8 @@ int main(int argc, char *argv[]) {
 	nframes = atoi(argv[2]);
 	const char *algorithm = argv[3];
 	const char *program_name = argv[4];
+
+	//frameTable = new sizeOf(nframes*int);
 
 	// Validate the algorithm specified
 	if ((strcmp(algorithm, "rand") != 0) &&
@@ -100,11 +124,23 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	// Create a page table
-	struct page_table *pt = page_table_create(npages, nframes, page_fault_handler_example /* TODO - Replace with your handler(s)*/);
-	if (!pt) {
-		cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
-		return 1;
+	if(!strcmp(algorithm, "fifo")){
+
+		struct page_table *pt = page_table_create(npages, nframes, page_fault_handler_fifo);
+		if (!pt) {
+			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
+			return 1;
+		}
+
+	} else {
+
+		// Create a page table
+		struct page_table *pt = page_table_create(npages, nframes, page_fault_handler_example /* TODO - Replace with your handler(s)*/);
+		if (!pt) {
+			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
+			return 1;
+		}
+
 	}
 
 	// Run the specified program
