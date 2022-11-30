@@ -15,6 +15,7 @@ how to use the page table and disk interfaces.
 #include <string.h>
 #include <queue>
 #include <map>
+#include <time.h>
 
 using namespace std;
 
@@ -24,7 +25,6 @@ typedef void (*program_f)(char *data, int length);
 
 // Number of physical frames
 int nframes;
-int fifoIndex = 0;
 
 // frameTabel generation:
 int *frameTable;
@@ -37,6 +37,11 @@ queue<int> free_frames;    //queue of free frames
 map<int, int> frame_table; //will give page number of frame
 //FIFO
 queue<int> q; //queue to keep track of entries order of insertion
+
+//stats
+int num_faults;
+int num_reads;
+int num_writes;
 
 // Simple handler for pages == frames
 void page_fault_handler_example(struct page_table *pt, int page) {
@@ -74,10 +79,15 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 	//page does not have a frame
 	if(*retBits == PROT_NONE)
 	{
+		num_faults++;
+		//cout << "Page has no frame." << endl;
+
 		//assign a frame and read in from disk
 		//we need a victim
 		if(free_frames.empty())
 		{
+			//cout << "Victim needed." << endl;
+
 			//find a victim and replace it
 			int victim_frame = q.front();
 			q.pop();
@@ -92,10 +102,13 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 			//check dirty bit and write to disk if required
 			if(*victimBits & PROT_WRITE)
 			{
+				num_writes++;
 				disk_write(disk, victimPage, page_table_get_physmem(pt) + victim_frame * PAGE_SIZE);
 			}
 			page_table_set_entry(pt, victimPage, 0, 0);
 
+			//cout << "Setting page " << page << " to frame " << victim_frame << endl;
+			num_reads++;
 			disk_read(disk, page, page_table_get_physmem(pt) + victim_frame * PAGE_SIZE);
 			page_table_set_entry(pt, page, victim_frame, PROT_READ);
 
@@ -108,18 +121,22 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 		//assign the page to the free frame
 		else
 		{
+			//cout << "Free frame found." << endl;
 			int free_frame = free_frames.front();
 			free_frames.pop();
+
 
 			q.push(free_frame);
 			frame_table[free_frame] = page;
 
 			page_table_set_entry(pt, page, free_frame, PROT_READ);
+			num_reads++;
 			disk_read(disk, page, page_table_get_physmem(pt) + (free_frame * PAGE_SIZE));
 		}
 	}
 	else if(*retBits & PROT_READ)
 	{
+		cout << "Page need write access." << endl;
 		page_table_set_entry(pt, page, *retFrame, PROT_READ|PROT_WRITE);
 	}
 	else
@@ -137,7 +154,96 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 	delete retBits;
 }
 
-// TODO - Handler(s) and page eviction algorithms
+void page_fault_handler_rand(struct page_table *pt, int page) {
+	cout << "page fault on page #" << page << endl;
+
+	// Print the page table contents
+	cout << "Before ---------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+
+	// Map the page to the same frame number and set to read/write
+	int* retFrame = new int;
+	int* retBits = new int;
+	page_table_get_entry(pt, page, retFrame, retBits);
+
+	//page does not have a frame
+	if(*retBits == PROT_NONE)
+	{
+		num_faults++;
+		//cout << "Page has no frame." << endl;
+
+		//assign a frame and read in from disk
+		//we need a victim
+		if(free_frames.empty())
+		{
+			//cout << "Victim needed." << endl;
+
+			//find a victim and replace it
+			srand(time(0));
+			int victim_frame = rand() % nframes;
+			
+
+			int victimPage = frame_table[victim_frame];
+			int* victimRetFrame = new int;
+			int* victimBits = new int;
+			page_table_get_entry(pt, victimPage, victimRetFrame, victimBits);
+
+			assert(victim_frame == *victimRetFrame);
+
+			//check dirty bit and write to disk if required
+			if(*victimBits & PROT_WRITE)
+			{
+				num_writes++;
+				disk_write(disk, victimPage, page_table_get_physmem(pt) + victim_frame * PAGE_SIZE);
+			}
+			page_table_set_entry(pt, victimPage, 0, 0);
+
+			//cout << "Setting page " << page << " to frame " << victim_frame << endl;
+			num_reads++;
+			disk_read(disk, page, page_table_get_physmem(pt) + victim_frame * PAGE_SIZE);
+			page_table_set_entry(pt, page, victim_frame, PROT_READ);
+
+			frame_table[victim_frame] = page;
+			
+
+			delete victimRetFrame;
+			delete victimBits;
+		}
+		//assign the page to the free frame
+		else
+		{
+			//cout << "Free frame found." << endl;
+			int free_frame = free_frames.front();
+			free_frames.pop();
+
+			frame_table[free_frame] = page;
+
+			page_table_set_entry(pt, page, free_frame, PROT_READ);
+			num_reads++;
+			disk_read(disk, page, page_table_get_physmem(pt) + (free_frame * PAGE_SIZE));
+		}
+	}
+	else if(*retBits & PROT_READ)
+	{
+
+		page_table_set_entry(pt, page, *retFrame, PROT_READ|PROT_WRITE);
+	}
+	else
+	{
+		cerr << "ERROR: page had unexpected permission bits values" << endl;
+		exit(1);
+	}
+
+	// Print the page table contents
+	cout << "After ----------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+
+	delete retFrame;
+	delete retBits;
+}
+
 
 int main(int argc, char *argv[]) {
 	// Check argument count
@@ -184,7 +290,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	// TODO - Any init needed
+	num_faults = 0;
+	num_reads = 0;
+	num_writes = 0;
+
 	struct page_table *pt = nullptr;
+
+	for(int i = 0; i < nframes; i++)
+	{
+		free_frames.push(i);
+	}
 
 	// Create a virtual disk
 	disk = disk_open("myvirtualdisk", npages);
@@ -197,6 +312,16 @@ int main(int argc, char *argv[]) {
 	{
 
 		pt = page_table_create(npages, nframes, page_fault_handler_fifo);
+		if (!pt) {
+			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
+			return 1;
+		}
+
+	}
+	else if(!strcmp(algorithm, "rand"))
+	{
+
+		pt = page_table_create(npages, nframes, page_fault_handler_rand);
 		if (!pt) {
 			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
 			return 1;
@@ -218,6 +343,10 @@ int main(int argc, char *argv[]) {
 	// Run the specified program
 	char *virtmem = page_table_get_virtmem(pt);
 	program(virtmem, npages * PAGE_SIZE);
+
+	cout << "Number of page faults: " << num_faults << endl;
+	cout << "Number of disk reads: " << num_reads << endl;
+	cout << "Number of disk writes: " << num_writes << endl;
 
 	// Clean up the page table and disk
 	page_table_delete(pt);
