@@ -14,6 +14,8 @@ how to use the page table and disk interfaces.
 #include <iostream>
 #include <string.h>
 #include <queue>
+#include <vector>
+#include <algorithm>
 #include <map>
 #include <time.h>
 
@@ -42,6 +44,32 @@ queue<int> q; //queue to keep track of entries order of insertion
 int num_faults;
 int num_reads;
 int num_writes;
+
+//"CLEAN FIFO"
+vector<int> readQ;
+vector<int> readWriteQ;
+
+//HELPERS FOR VECTORS
+int removeFromQ(int page, vector<int>& Q)
+{
+	if(find(Q.begin(), Q.end(), page) != Q.end())
+	{
+		for (vector<int>::iterator iter = Q.begin(); iter != Q.end(); ++iter)
+		{
+			if (*iter == page)
+			{
+				Q.erase(iter);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void addToQ(int page, vector<int>& Q)
+{
+    Q.insert(Q.end(), page);
+}
 
 // Simple handler for pages == frames
 void page_fault_handler_example(struct page_table *pt, int page) {
@@ -244,6 +272,118 @@ void page_fault_handler_rand(struct page_table *pt, int page) {
 	delete retBits;
 }
 
+void page_fault_handler_cleanFIFO(struct page_table *pt, int page) {
+	cout << "page fault on page #" << page << endl;
+
+	// Print the page table contents
+	cout << "Before ---------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+
+	// Map the page to the same frame number and set to read/write
+	int* retFrame = new int;
+	int* retBits = new int;
+	page_table_get_entry(pt, page, retFrame, retBits);
+
+	//page does not have a frame
+	if(*retBits == PROT_NONE)
+	{
+		num_faults++;
+		//cout << "Page has no frame." << endl;
+
+		//assign a frame and read in from disk
+		//we need a victim
+		if(free_frames.empty())
+		{
+			//cout << "Victim needed." << endl;
+			bool useRQ = !(readQ.empty());
+			bool useRWQ = !(readWriteQ.empty());
+			assert(useRQ || useRWQ);
+
+			//find a victim and replace it
+			int victim_page;
+			if(useRQ)
+			{
+				victim_page = readQ[0];
+				readQ.erase(readQ.begin());
+			}
+			else if(useRWQ)
+			{
+				victim_page = readWriteQ[0];
+				readWriteQ.erase(readWriteQ.begin());
+			}
+
+			int* victimRetFrame = new int;
+			int* victimBits = new int;
+			page_table_get_entry(pt, victim_page, victimRetFrame, victimBits);
+
+			assert(frame_table[*victimRetFrame] == victim_page);
+
+			//check dirty bit and write to disk if required
+			//this should only trigger if we pulled a victim from the readWriteQueue
+			if(*victimBits & PROT_WRITE)
+			{
+				assert((!useRQ) && useRWQ);
+				num_writes++;
+				disk_write(disk, victim_page, page_table_get_physmem(pt) + *victimRetFrame * PAGE_SIZE);
+			}
+			page_table_set_entry(pt, victim_page, 0, 0);
+
+			//cout << "Setting page " << page << " to frame " << victim_frame << endl;
+			num_reads++;
+			disk_read(disk, page, page_table_get_physmem(pt) + *victimRetFrame * PAGE_SIZE);
+			page_table_set_entry(pt, page, *victimRetFrame, PROT_READ);
+
+			frame_table[*victimRetFrame] = page;
+			addToQ(page, readQ);
+
+			delete victimRetFrame;
+			delete victimBits;
+		}
+		//assign the page to the free frame
+		else
+		{
+			//cout << "Free frame found." << endl;
+			int free_frame = free_frames.front();
+			free_frames.pop();
+
+			addToQ(page, readQ);
+			frame_table[free_frame] = page;
+
+			page_table_set_entry(pt, page, free_frame, PROT_READ);
+			num_reads++;
+			disk_read(disk, page, page_table_get_physmem(pt) + (free_frame * PAGE_SIZE));
+		}
+	}
+	else if(*retBits & PROT_READ)
+	{
+		//cout << "Page need write access." << endl;
+		bool removed = removeFromQ(page, readQ);
+		if(removed)
+		{
+			addToQ(page, readWriteQ);
+			page_table_set_entry(pt, page, *retFrame, PROT_READ|PROT_WRITE);
+		}
+		else
+		{
+			cerr << "ERROR: could not remove page from read queue" << endl;
+			exit(1);
+		}
+	}
+	else
+	{
+		cerr << "ERROR: page had unexpected permission bits values" << endl;
+		exit(1);
+	}
+
+	// Print the page table contents
+	cout << "After ----------------------------" << endl;
+	page_table_print(pt);
+	cout << "----------------------------------" << endl;
+
+	delete retFrame;
+	delete retBits;
+}
 
 int main(int argc, char *argv[]) {
 	// Check argument count
@@ -263,7 +403,7 @@ int main(int argc, char *argv[]) {
 	// Validate the algorithm specified
 	if ((strcmp(algorithm, "rand") != 0) &&
 	    (strcmp(algorithm, "fifo") != 0) &&
-	    (strcmp(algorithm, "lru") != 0)) {
+	    (strcmp(algorithm, "clean") != 0)) {
 		cerr << "ERROR: Unknown algorithm: " << algorithm << endl;
 		exit(1);
 	}
@@ -322,6 +462,16 @@ int main(int argc, char *argv[]) {
 	{
 
 		pt = page_table_create(npages, nframes, page_fault_handler_rand);
+		if (!pt) {
+			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
+			return 1;
+		}
+
+	} 
+	else if(!strcmp(algorithm, "clean"))
+	{
+
+		pt = page_table_create(npages, nframes, page_fault_handler_cleanFIFO);
 		if (!pt) {
 			cerr << "ERROR: Couldn't create page table: " << strerror(errno) << endl;
 			return 1;
