@@ -73,12 +73,12 @@ void addToQ(int page, vector<int>& Q)
 
 // Simple handler for pages == frames
 void page_fault_handler_example(struct page_table *pt, int page) {
-	cout << "page fault on page #" << page << endl;
+	//cout << "page fault on page #" << page << endl;
 
 	// Print the page table contents
-	cout << "Before ---------------------------" << endl;
+	//cout << "Before ---------------------------" << endl;
 	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "----------------------------------" << endl;
 
 	// Map the page to the same frame number and set to read/write
 	// TODO - Disable exit and enable page table update for example
@@ -86,18 +86,18 @@ void page_fault_handler_example(struct page_table *pt, int page) {
 	page_table_set_entry(pt, page, page, PROT_READ | PROT_WRITE);
 
 	// Print the page table contents
-	cout << "After ----------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "After ----------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 }
 
 void page_fault_handler_fifo(struct page_table *pt, int page) {
-	cout << "page fault on page #" << page << endl;
+	//cout << "page fault on page #" << page << endl;
 
 	// Print the page table contents
-	cout << "Before ---------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "Before ---------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	// Map the page to the same frame number and set to read/write
 	int* retFrame = new int;
@@ -164,7 +164,7 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 	}
 	else if(*retBits & PROT_READ)
 	{
-		cout << "Page need write access." << endl;
+		//cout << "Page need write access." << endl;
 		page_table_set_entry(pt, page, *retFrame, PROT_READ|PROT_WRITE);
 	}
 	else
@@ -174,21 +174,21 @@ void page_fault_handler_fifo(struct page_table *pt, int page) {
 	}
 
 	// Print the page table contents
-	cout << "After ----------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "After ----------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	delete retFrame;
 	delete retBits;
 }
 
 void page_fault_handler_rand(struct page_table *pt, int page) {
-	cout << "page fault on page #" << page << endl;
+	//cout << "page fault on page #" << page << endl;
 
 	// Print the page table contents
-	cout << "Before ---------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "Before ---------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	// Map the page to the same frame number and set to read/write
 	int* retFrame = new int;
@@ -264,21 +264,21 @@ void page_fault_handler_rand(struct page_table *pt, int page) {
 	}
 
 	// Print the page table contents
-	cout << "After ----------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "After ----------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	delete retFrame;
 	delete retBits;
 }
 
 void page_fault_handler_cleanFIFO(struct page_table *pt, int page) {
-	cout << "page fault on page #" << page << endl;
+	//cout << "page fault on page #" << page << endl;
 
 	// Print the page table contents
-	cout << "Before ---------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "Before ---------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	// Map the page to the same frame number and set to read/write
 	int* retFrame = new int;
@@ -311,6 +311,11 @@ void page_fault_handler_cleanFIFO(struct page_table *pt, int page) {
 			{
 				victim_page = readWriteQ[0];
 				readWriteQ.erase(readWriteQ.begin());
+			}
+			else
+			{
+				cerr << "ERROR: handler could not get a page from either FIFO queues" << endl;
+				exit(1);
 			}
 
 			int* victimRetFrame = new int;
@@ -377,9 +382,9 @@ void page_fault_handler_cleanFIFO(struct page_table *pt, int page) {
 	}
 
 	// Print the page table contents
-	cout << "After ----------------------------" << endl;
-	page_table_print(pt);
-	cout << "----------------------------------" << endl;
+	//cout << "After ----------------------------" << endl;
+	//page_table_print(pt);
+	//cout << "----------------------------------" << endl;
 
 	delete retFrame;
 	delete retBits;
